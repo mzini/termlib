@@ -78,5 +78,3 @@ canonise (Fun f xs) varmap = (Fun f (fst subresult), snd subresult)
   where subresult = foldl doSubTerm ([], varmap) xs
         doSubTerm a t = ((fst a) ++ [fst subsubresult], snd subsubresult)
           where subsubresult = canonise t (snd a)
-
-variant s t = (canonise s Map.empty) == (canonise t Map.empty)
