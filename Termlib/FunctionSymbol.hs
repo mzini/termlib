@@ -7,7 +7,7 @@ module FunctionSymbol
 
 import qualified Data.IntMap as IntMap
 
-newtype FunctionSymbol = FunctionSymbol Int deriving Eq
+newtype FunctionSymbol = FunctionSymbol Int deriving (Eq, Show)
 
 data Prop = Prop {
   ident :: Maybe String,
