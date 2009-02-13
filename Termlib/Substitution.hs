@@ -39,5 +39,10 @@ s `subsumes` t = Maybe.isJust (match t s empty)
 
 match s (T.Var x) sub = Maybe.maybe (Just (compose sub (singleton x s)))
   (\t -> if s == t then Just sub else Nothing) (Substitution.lookup x sub)
+match (T.Fun g ys) (T.Fun f xs) sub
+  | f == g && length xs == length ys = foldr doSubTerm (Just sub) (zip ys xs)
+                                         where doSubTerm (y, x) s' = maybe Nothing (\sub' -> match y x sub') s'
+  | otherwise                        = Nothing
+match _ _ _ = Nothing
 
 variant s t = (s `subsumes` t) && (t `subsumes` s)
