@@ -1,4 +1,4 @@
-module FunctionSymbol
+module Termlib.FunctionSymbol
   (
   name,
   Sig,

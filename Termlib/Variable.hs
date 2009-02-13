@@ -1,4 +1,4 @@
-module Variable
+module Termlib.Variable
   (
   name,
   freshVar,

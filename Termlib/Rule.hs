@@ -1,4 +1,4 @@
-module Rule
+module Termlib.Rule
   (
   bothsides,
   lhsVariables,
@@ -18,7 +18,7 @@ module Rule
   Rule
   ) where
 
-import qualified Term as T
+import qualified Termlib.Term as T
 import qualified Data.List as List
 import qualified Data.Map as Map
 

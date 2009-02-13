@@ -1,0 +1,20 @@
+name:               Termlib
+version:            0.1
+synopsis:           Term Rewriting
+description:
+  A comprehensive Term Rewriting Library
+author:             The Authors
+maintainer:         nobody@nodomain.at
+license:            LGPL
+cabal-version:      >= 1.6
+build-type:	    Simple
+
+library
+ exposed-modules:   Termlib.FunctionSymbol
+                    Termlib.Variable
+                    Termlib.Term
+                    Termlib.Rule
+                    Termlib.Substitution
+                    Termlib.Trs
+
+ build-depends:	    base, containers

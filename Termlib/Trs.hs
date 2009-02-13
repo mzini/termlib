@@ -1,4 +1,4 @@
-module TRS
+module Termlib.Trs
   (
   allrules,
   duplicating,
@@ -15,7 +15,7 @@ module TRS
   TRS
   ) where
 
-import qualified Rule as R
+import qualified Termlib.Rule as R
 import qualified Data.List as List
 
 newtype TRS = TRS [R.Rule] deriving Show

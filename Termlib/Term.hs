@@ -1,4 +1,4 @@
-module Term
+module Termlib.Term
   (
   canonise,
   depth,
@@ -18,8 +18,8 @@ module Term
   Term(..)
   ) where
 
-import qualified Variable as V
-import qualified FunctionSymbol as F
+import qualified Termlib.Variable as V
+import qualified Termlib.FunctionSymbol as F
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
