@@ -42,8 +42,8 @@ match s (T.Var x) sub = Maybe.maybe (Just (compose sub (singleton x s)))
                                                
 match (T.Fun g ys) (T.Fun f xs) sub
   | f == g && length xs == length ys = foldr doSubTerm (Just sub) (zip ys xs)
+                                         where doSubTerm (y, x) s' = maybe Nothing (\sub' -> match y x sub') s'
   | otherwise                        = Nothing
-  where doSubTerm (y, x) s' = maybe Nothing (\sub' -> match y x sub') s'
 match _ _ _ = Nothing
 
 variant s t = (s `subsumes` t) && (t `subsumes` s)
