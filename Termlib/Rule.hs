@@ -1,5 +1,9 @@
 module Termlib.Rule
   (
+  rewrites,
+  topRewrites,
+  reduced,
+  topReduced,
   bothsides,
   lhsVariables,
   rhsVariables,
@@ -21,9 +25,11 @@ module Termlib.Rule
   Rule
   ) where
 
+import qualified Termlib.Substitution as S
 import qualified Termlib.Term as T
 import qualified Data.List as List
 import qualified Data.Map as Map
+import qualified Data.Maybe as Maybe
 
 data Rule = Rule {lhs :: T.Term, rhs :: T.Term} deriving Show
 
@@ -32,6 +38,17 @@ instance Eq Rule where
     where (lhs1, vm1) = ((`T.canonise` Map.empty) . lhs) r1
           (lhs2, vm2) = ((`T.canonise` Map.empty) . lhs) r2
           canonrhs vm = fst . (`T.canonise` vm) . rhs
+
+rewrites s@(T.Fun f xs) t@(T.Fun g ys) r
+  | f == g && length xs == length ys = topRewrites s t r || any (\(x, y) -> rewrites x y r) (zip xs ys)
+rewrites s t r = topRewrites s t r
+
+topRewrites s t r = maybe False (Maybe.isJust . S.match t (rhs r)) (S.match s (lhs r) S.empty)
+
+reduced s@(T.Var _) r = topReduced s r
+reduced s@(T.Fun _ xs) r = topReduced s r && all (`reduced` r) xs
+
+topReduced s r = not ((lhs r) `S.subsumes` s)
 
 bothsides f r = (f . lhs) r && (f . rhs) r
 

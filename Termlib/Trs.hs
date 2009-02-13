@@ -1,6 +1,10 @@
 module Termlib.Trs
   (
   allrules,
+  rewrites,
+  topRewrites,
+  reduced,
+  topReduced,
   duplicating,
   nonduplicating,
   flat,
@@ -24,6 +28,14 @@ import qualified Data.List as List
 newtype TRS = TRS [R.Rule] deriving Show
 
 allrules f (TRS rs) = all f rs
+
+rewrites s t (TRS rs) = any (R.rewrites s t) rs
+
+topRewrites s t (TRS rs) = any (R.topRewrites s t) rs
+
+reduced s = allrules (R.reduced s)
+
+topReduced s = allrules (R.topReduced s)
 
 duplicating (TRS rs) = any R.duplicating rs
 
