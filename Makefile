@@ -1,26 +1,16 @@
 PREFIX=/usr/local
-SETUP=./Setup.lhs
 
-all: build
+all: build doc_haskell
 
+build: build_haskell
 
-configure: *.cabal Setup.*
-	$(SETUP) configure --prefix=$(PREFIX)
-
-build: configure 
-	$(SETUP) build
-
-
-install: build
+install: install_haskell
 	$(SETUP) install
 
-uninstall: 
-	$(SETUP) unregister
+uninstall: unregister_haskell
 
-upload:
-	./upload.sh
-
-clean: 
-	$(SETUP) clean
+clean: clean_haskell
 
 .PHONY: clean
+
+include ./template.mk
