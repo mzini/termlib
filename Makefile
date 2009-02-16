@@ -1,4 +1,4 @@
-PREFIX=/usr/local
+include template.mk
 
 all: build doc_haskell
 
@@ -11,5 +11,3 @@ uninstall: unregister_haskell
 clean: clean_haskell
 
 .PHONY: clean
-
-include ./template.mk
