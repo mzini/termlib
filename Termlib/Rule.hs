@@ -9,12 +9,15 @@ module Termlib.Rule
   flat,
   shallow,
   linear,
+  ground,
   leftFlat,
   leftShallow,
   leftLinear,
+  leftGround,
   rightFlat,
   rightShallow,
   rightLinear,
+  rightGround,
   Rule
   ) where
 
@@ -52,6 +55,8 @@ shallow = bothsides T.shallow
 
 linear = bothsides T.linear
 
+ground = bothsides T.ground
+
 leftFlat = T.flat . lhs
 
 rightFlat = T.flat . rhs
@@ -63,3 +68,7 @@ rightShallow = T.shallow . rhs
 leftLinear = T.linear . lhs
 
 rightLinear = T.linear . rhs
+
+leftGround = T.ground . lhs
+
+rightGround = T.ground . rhs

@@ -10,6 +10,7 @@ module Termlib.Term
   flat,
   shallow,
   linear,
+  ground,
   immediateSubterms,
   subterm,
   variables,
@@ -50,6 +51,8 @@ shallow t = maybe True (<= 1) (vardepth t)
 
 linear t = List.nub vs == vs
   where vs = variables t
+
+ground = (== []) . variables
 
 functions (Var _) = []
 functions (Fun f xs) = (List.nub . (:) f . concat . map functions) xs

@@ -6,12 +6,15 @@ module Termlib.Trs
   flat,
   shallow,
   linear,
+  ground,
   leftFlat,
   leftShallow,
   leftLinear,
+  leftGround,
   rightFlat,
   rightShallow,
   rightLinear,
+  rightGround,
   TRS
   ) where
 
@@ -32,6 +35,8 @@ shallow = allrules R.shallow
 
 linear = allrules R.linear
 
+ground = allrules R.ground
+
 leftFlat = allrules R.leftFlat
 
 rightFlat = allrules R.rightFlat
@@ -43,3 +48,7 @@ rightShallow = allrules R.rightShallow
 leftLinear = allrules R.leftLinear
 
 rightLinear = allrules R.rightLinear
+
+leftGround = allrules R.leftGround
+
+rightGround = allrules R.rightGround
