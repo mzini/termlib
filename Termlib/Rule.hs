@@ -48,7 +48,7 @@ topRewrites s t r = maybe False (Maybe.isJust . S.match t (rhs r)) (S.match s (l
 reduced s@(T.Var _) r = topReduced s r
 reduced s@(T.Fun _ xs) r = topReduced s r && all (`reduced` r) xs
 
-topReduced s r = not ((lhs r) `S.subsumes` s)
+topReduced s r = not (lhs r `S.subsumes` s)
 
 bothsides f r = (f . lhs) r && (f . rhs) r
 

@@ -33,9 +33,9 @@ rewrites s t (TRS rs) = any (R.rewrites s t) rs
 
 topRewrites s t (TRS rs) = any (R.topRewrites s t) rs
 
-reduced s = allrules (R.reduced s)
+reduced = allrules . R.reduced
 
-topReduced s = allrules (R.topReduced s)
+topReduced = allrules . R.topReduced
 
 duplicating (TRS rs) = any R.duplicating rs
 

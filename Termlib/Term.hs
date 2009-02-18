@@ -47,7 +47,7 @@ vardepth (Fun _ xs) = if subresults == [] then Nothing else (Just . succ . maxim
 
 flat t = depth t <= 1
 
-shallow t = maybe True (<= 1) (vardepth t)
+shallow = maybe True (<= 1) . vardepth
 
 linear t = List.nub vs == vs
   where vs = variables t
@@ -55,7 +55,7 @@ linear t = List.nub vs == vs
 ground = (== []) . variables
 
 functions (Var _) = []
-functions (Fun f xs) = (List.nub . (:) f . concat . map functions) xs
+functions (Fun f xs) = (List.nub . (:) f . concatMap functions) xs
 
 immediateSubterms (Var _) = []
 immediateSubterms (Fun _ xs) = xs
@@ -63,7 +63,7 @@ immediateSubterms (Fun _ xs) = xs
 s `subterm` t = s == t || (any (s `subterm`). immediateSubterms) t
 
 variables (Var v) = [v]
-variables (Fun _ xs) = (List.nub . concat . map variables) xs
+variables (Fun _ xs) = (List.nub . concatMap variables) xs
 
 isVariable (Var _) = True
 isVariable (Fun _ _) = False
@@ -79,5 +79,5 @@ canonise (Var x) varmap = case Map.lookup x varmap of
   Just oldelem -> (Var oldelem, varmap)
 canonise (Fun f xs) varmap = (Fun f (fst subresult), snd subresult)
   where subresult = foldl doSubTerm ([], varmap) xs
-        doSubTerm a t = ((fst a) ++ [fst subsubresult], snd subsubresult)
+        doSubTerm a t = (fst a ++ [fst subsubresult], snd subsubresult)
           where subsubresult = canonise t (snd a)
