@@ -1,9 +1,10 @@
 module Termlib.FunctionSymbol
   (
-  name,
-  Sig,
-  FunctionSymbol
-  ) where
+   name,
+   Sig,
+   FunctionSymbol
+  ) 
+where
 
 import Data.Maybe (fromMaybe)
 import qualified Data.IntMap as IntMap
