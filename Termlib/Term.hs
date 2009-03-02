@@ -1,7 +1,7 @@
 module Termlib.Term
   (
-  canonise,
-  depth,
+   canonise,
+   depth,
   functions,
   root,
   size,
@@ -25,7 +25,7 @@ import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
 
-data Term = Var V.Variable | Fun F.FunctionSymbol [Term]
+data Term = Var V.Variable | Fun F.Symbol [Term]
   deriving (Eq, Show)
 
 depth (Var _) = 0
@@ -74,7 +74,8 @@ varCardinality x (Fun _ xs) = (sum . map (varCardinality x)) xs
 
 canonise (Var x) varmap = case Map.lookup x varmap of
   Nothing -> addvar x varmap
-    where addvar v vm = let newelem = (V.freshVar . Map.elems) vm in
+    where addvar v vm = let newelem = undefined in
+  -- MA:TODO sry (V.freshVar . Map.elems) vm in
             (Var newelem, Map.insert v newelem vm)
   Just oldelem -> (Var oldelem, varmap)
 canonise (Fun f xs) varmap = (Fun f (fst subresult), snd subresult)

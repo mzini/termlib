@@ -12,10 +12,16 @@ build-type:	    Simple
 library
  exposed-modules:   Termlib.FunctionSymbol
                     Termlib.Signature
+                    Termlib.Signature.XmlParser
                     Termlib.Variable
                     Termlib.Term
                     Termlib.Rule
                     Termlib.Substitution
                     Termlib.Trs
+                    Termlib.Utils
+                    Termlib.Problem
+                    Termlib.Problem.XmlParser
+                    Termlib.Trs.XmlParser
+                    Termlib.Trs.PrettyPrint
 
- build-depends:	    base, containers
+ build-depends:	    base, containers, mtl, HaXml, pretty

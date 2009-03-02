@@ -1,26 +1,39 @@
 module Termlib.FunctionSymbol
-  (
-   name,
-   Sig,
-   FunctionSymbol
-  ) 
 where
+import qualified Termlib.Signature as Sig
+import Termlib.Utils
 
-import Data.Maybe (fromMaybe)
-import qualified Data.IntMap as IntMap
+type Arity = Int
+type FunctionName = String
 
-newtype FunctionSymbol = FunctionSymbol Int deriving (Eq, Show)
+newtype Symbol = Symbol Int deriving (Eq, Ord, Show)
 
-data Prop = Prop {
-  ident :: Maybe String,
-  arity :: Int,
-  isMarked :: Bool,
-  isCompound :: Bool,
-  label :: Maybe Int
-  }
+instance Enumerateable Symbol where
+  enum (Symbol i) = i
+  invEnum = Symbol
 
-newtype Sig = Sig (IntMap.IntMap Prop)
+data Attributes = Attributes { ident :: FunctionName
+                             , arity :: Arity
+                             , isMarked :: Bool
+                             , isCompound :: Bool
+                             , label :: Maybe Int}
+                  deriving Show 
 
-name (FunctionSymbol f) sig = case IntMap.lookup f sig of
-  Nothing -> error $ "FunctionSymbol.name: function symbol not contained in signature: " ++ show f
-  Just p -> fromMaybe ("f_" ++ show f) $ ident p
+type Signature = Sig.Signature Symbol Attributes
+
+defaultAttribs :: FunctionName -> Arity -> Attributes
+defaultAttribs name ar  = Attributes { ident = name
+                                     , arity = ar
+                                     , isMarked = False
+                                     , isCompound = False
+                                     , label = Nothing}
+
+symbol :: String -> Signature -> Maybe Symbol
+symbol name sig = Sig.findByAttribute p sig
+  where p attrib = ident attrib == name
+
+emptySignature :: Signature
+emptySignature = Sig.empty
+
+fresh :: Attributes -> Signature -> (Symbol, Signature)
+fresh = Sig.fresh

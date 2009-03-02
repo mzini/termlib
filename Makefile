@@ -1,3 +1,4 @@
+include .config
 include template.mk
 
 all: build doc_haskell

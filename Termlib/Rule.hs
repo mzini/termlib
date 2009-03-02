@@ -22,7 +22,7 @@ module Termlib.Rule
   rightShallow,
   rightLinear,
   rightGround,
-  Rule
+  Rule(..)
   ) where
 
 import qualified Termlib.Substitution as S

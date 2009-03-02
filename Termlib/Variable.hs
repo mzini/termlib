@@ -1,24 +1,29 @@
-module Termlib.Variable
-  (
-  name,
-  freshVar,
-  Sig,
-  Variable
-  ) where
+module Termlib.Variable where
 
-import Data.Maybe (fromMaybe)
-import qualified Data.IntMap as IntMap
+import Termlib.Signature hiding (fresh)
+import qualified Termlib.Signature as Signature
+import Termlib.Utils
 
 newtype Variable = Variable Int deriving (Eq, Ord, Show)
+instance Enumerateable Variable where
+  enum (Variable i) = i
+  invEnum = Variable
 
-newtype Prop = Prop (Maybe String)
+data Attributes = Attributes { ident :: String}
+                  deriving Show 
 
-newtype Sig = Sig (IntMap.IntMap Prop)
+type Variables = Signature Variable Attributes
 
-name (Variable v) sig = case IntMap.lookup v sig of
-  Nothing -> error $ "Variable.name: variable not contained in signature: " ++ show v
-  Just p -> fromMaybe ("v_" ++ show v) p
+defaultAttribs :: String -> Attributes
+defaultAttribs name  = Attributes {ident = name}
 
-freshVar [] = Variable 1
-freshVar xs = (Variable . succ . maximum . map vindex) xs
-  where vindex (Variable v) = v
+variable :: String -> Variables -> Maybe Variable
+variable name sig = findByAttribute p sig
+  where p attrib = ident attrib == name 
+
+emptyVariables :: Variables
+emptyVariables = empty
+
+fresh :: String  -> Variables -> (Variable, Variables)
+fresh n = Signature.fresh $ Attributes $ n
+
