@@ -29,6 +29,7 @@ module Termlib.Trs
 where
 
 import qualified Data.List as List
+import qualified Data.Set as Set
 import qualified Control.Monad.State.Lazy as State
 
 import qualified Termlib.Rule as R
@@ -147,8 +148,8 @@ leftGround = allrules R.leftGround
 rightGround = allrules R.rightGround
 
 
-definedSymbols :: Trs -> Signature
+definedSymbols :: Trs -> Set.Set F.Symbol
 definedSymbols _ = undefined 
 
-constructors :: Trs -> Signature
+constructors :: Trs -> Set.Set F.Symbol
 constructors _ = undefined 

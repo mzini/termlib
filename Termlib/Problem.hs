@@ -18,15 +18,17 @@ module Termlib.Problem
   , withRelativeProblem)
 where
 
+import Data.Set (Set)
+
 import qualified Termlib.Trs as Trs 
 import Termlib.Trs (Trs) 
-import Termlib.FunctionSymbol (Signature)
+import qualified Termlib.FunctionSymbol as F
 
 data Strategy = Innermost
               | Outermost
               | Full deriving (Show,Eq)
 
-data StartTerms = BasicTerms Signature
+data StartTerms = BasicTerms (Set F.Symbol)
                 | TermAlgebra 
                   deriving Show
 

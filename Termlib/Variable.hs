@@ -4,10 +4,14 @@ import Termlib.Signature hiding (fresh)
 import qualified Termlib.Signature as Signature
 import Termlib.Utils
 
-newtype Variable = Variable Int deriving (Eq, Ord, Show)
+data Variable = Canon Int 
+              | User Int  deriving (Eq, Ord, Show)
+
 instance Enumerateable Variable where
-  enum (Variable i) = i
-  invEnum = Variable
+  enum (Canon i) = 2 * i
+  enum (User i) = 2 * i + 1
+  invEnum i | even i    = Canon $ i `div` 2 
+            | otherwise = User $ (i - 1) `div` 2
 
 data Attributes = Attributes { ident :: String}
                   deriving Show 
