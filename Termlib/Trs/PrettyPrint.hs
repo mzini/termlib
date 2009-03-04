@@ -8,9 +8,10 @@ import Termlib.Term
 import qualified Termlib.Signature as Sig
 import Text.PrettyPrint.HughesPJ
 import Control.Monad (forM)
+import Termlib.Utils
 
-pprintTrs :: Trs -> Doc
-pprintTrs trs = fst $ runTrs (forM (rules trs) pprintRule >>= return . sep) trs
+instance PrettyPrintable Trs where 
+  pprint trs = fst $ runTrs (forM (rules trs) pprintRule >>= return . sep) trs
 
 pprintRule :: R.Rule -> TrsMonad Doc
 pprintRule (R.Rule l r) = do ppl <- pprintTerm l

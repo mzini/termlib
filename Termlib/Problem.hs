@@ -1,8 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE EmptyDataDecls #-}
-
 module Termlib.Problem
   ( Strategy(..)
   , StartTerms(..)
@@ -25,7 +20,6 @@ import Termlib.Trs (Trs)
 import qualified Termlib.FunctionSymbol as F
 
 data Strategy = Innermost
-              | Outermost
               | Full deriving (Show,Eq)
 
 data StartTerms = BasicTerms (Set F.Symbol)

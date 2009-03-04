@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 module Termlib.FunctionSymbol
 where
 import qualified Termlib.Signature as Sig
@@ -6,7 +8,7 @@ import Termlib.Utils
 type Arity = Int
 type FunctionName = String
 
-newtype Symbol = Symbol Int deriving (Eq, Ord, Show)
+data Symbol = Symbol !Int deriving (Eq, Ord, Show)
 
 instance Enumerateable Symbol where
   enum (Symbol i) = i

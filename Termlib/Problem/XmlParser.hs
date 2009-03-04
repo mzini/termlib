@@ -8,6 +8,7 @@ import Control.Monad.Trans (lift)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 
 import Text.XML.HaXml
@@ -20,6 +21,7 @@ import qualified Termlib.Variable as V
 import Termlib.FunctionSymbol (Signature, Symbol)
 import Termlib.Term (Term(..))
 import qualified Termlib.Trs as Trs
+import Termlib.Trs (Trs)
 
 
 
@@ -29,10 +31,14 @@ data ParseError = MalformedTerm Content
                 | UnsupportedStrategy String
                 | SymbolNotInSignature String
 
+data ParseWarning = PartiallySupportedStrategy String
+                  | ContextSensitive 
+
+
 instance Show ParseError where
   show (MalformedTerm s) = "Malformed term:\n" ++ verbatim s
   show (MalformedRule s) = "Malformed rule:\n" ++ verbatim s
-  show (SymbolNotInSignature sym) = "SymbolNotInSignature " ++ sym
+  show (SymbolNotInSignature s) = "Symbol '" ++ s ++ "not referenced in the signature"
   show (UnsupportedStrategy s) = "Unsupported strategy: " ++ s
   show (UnknownError e) = e
 
@@ -41,6 +47,28 @@ instance Error ParseError where
 
 type SymMap = Map String Symbol
 
+newtype Parser r = P { 
+    runParser :: ErrorT ParseError (RWS (Maybe SymMap) [ParseWarning] V.Variables) r
+  } deriving (Monad, MonadError ParseError)
+
+liftP ::  RWS (Maybe SymMap) [ParseWarning] V.Variables a -> Parser a
+liftP m = P $ lift m
+
+sym :: String -> Parser F.Symbol
+sym name = do ms <- liftP $ ask >>= return . Map.lookup name . fromMaybe (error "reading symbol befor parsing signature!") 
+              case ms of 
+                Just s -> return s
+                Nothing  -> throwError $ SymbolNotInSignature name
+
+var :: String -> Parser V.Variable
+var name = liftP $ do vars <- get
+                      case V.variable name vars of 
+                        Just some  -> return some
+                        Nothing -> put vars' >> return fresh
+                                  where (fresh, vars') = V.fresh name $ vars
+
+warn :: ParseWarning -> Parser ()
+warn a = liftP $ tell [a]
 
 cElems :: CFilter
 cElems = f `o` children
@@ -51,12 +79,15 @@ parseOne :: a -> (b -> a) -> [b] -> a
 parseOne _ p [a] = p a
 parseOne e _ _   = e
 
-problemFromString :: String -> Either ParseError Problem
-problemFromString str = parseProblem doc
+problemFromString :: String -> Either ParseError (Problem,[ParseWarning])
+problemFromString str = case evalRWS run Nothing V.emptyVariables of 
+                          (Left e,_) -> Left e
+                          (Right r,w) -> Right (r,w)
   where doc = getContent $ xmlParse "xml:problem" str  
         getContent (Document _ _ e _) = CElem e
+        run = runErrorT $ runParser $ parseProblem doc
 
-parseProblem :: MonadError ParseError m => Content -> m Problem
+parseProblem :: Content -> Parser Problem
 parseProblem doc = do (sig,symMap) <- parseOne errSig parseSignature $ tag "problem" /> tag "trs" /> tag "signature" $ doc
                       (strict,weak) <- parseOne errTrs (parseTrs sig symMap) $ tag "problem" /> tag "trs" /> tag "rules" $ doc
                       strategy <- parseStrategy doc
@@ -67,7 +98,7 @@ parseProblem doc = do (sig,symMap) <- parseOne errSig parseSignature $ tag "prob
   where errSig = throwError $ UnknownError "Error when parsing signature"
         errTrs = throwError $ UnknownError "Error when parsing trs"
 
-parseSignature :: MonadError ParseError m => Content -> m (Signature, SymMap)
+parseSignature :: Content -> Parser (Signature, SymMap)
 parseSignature = liftM mkSig . parseSymbolList
   where mkSig = foldr mk (F.emptySignature, Map.empty)
         mk attrib (sig,m) = (sig', Map.insert (F.ident attrib) i m)
@@ -78,65 +109,35 @@ parseSignature = liftM mkSig . parseSymbolList
                 getAttribs c = F.defaultAttribs (vtg "name") (read $ vtg "arity")
                   where vtg t = verbatim $ tag "funcsym" /> tag t /> txt $ c
 
-parseStrategy :: MonadError ParseError m => Content -> m Strategy
+parseStrategy :: Content -> Parser Strategy
 parseStrategy doc = case verbatim $ tag "problem" /> tag "strategy" /> txt $ doc of
                       "INNERMOST" -> return Innermost
-                      "OUTERMOST" -> return Outermost
+                      "OUTERMOST" -> warn (PartiallySupportedStrategy "OUTERMOST") >> return Full
                       "FULL" -> return Full
-                      "NONE" -> return Full
                       a -> throwError $ UnsupportedStrategy a
 
-parseStartTerms :: MonadError ParseError m => Set F.Symbol -> Content -> m StartTerms
+parseStartTerms :: Set F.Symbol -> Content -> Parser StartTerms
 parseStartTerms defs doc = case tag "problem" /> tag "startterm" /> txt $ doc of
                             [] -> return TermAlgebra
                             _ -> return $ BasicTerms defs
                                
+parseTrs :: Signature -> SymMap -> Content -> Parser (Trs,Trs)
+parseTrs sig syms doc = P $ local (const $ Just syms) $ runParser $ parseRules sig doc
 
-
-newtype TrsParser a = P { 
-    runParser :: ErrorT ParseError (RWS SymMap () V.Variables) a
-  } deriving (Monad, MonadError ParseError)
-
-
-
-liftP ::  RWS SymMap () V.Variables a -> TrsParser a
-liftP m = P $ lift m
-
-sym :: String -> TrsParser F.Symbol
-sym name = do ms <- liftP $ ask >>= return . Map.lookup name
-              case ms of 
-                Just s -> return s
-                Nothing  -> throwError $ SymbolNotInSignature name
-
-var :: String -> TrsParser V.Variable
-var name = liftP $ do vars <- get
-                      case V.variable name vars of 
-                        Just some  -> return some
-                        Nothing -> put vars' >> return fresh
-                                  where (fresh, vars') = V.fresh name $ vars
-
-
-parseTrs :: MonadError ParseError m => F.Signature -> SymMap ->  Content -> m (Trs.Trs,Trs.Trs)
-parseTrs sig syms doc = case fst $ evalRWS run syms V.emptyVariables of
-                          Left e  -> throwError e
-                          Right p -> return p
-  where run = runErrorT $ runParser $ parseRules sig doc
-
-
-parseRules :: F.Signature -> Content -> TrsParser (Trs.Trs,Trs.Trs)
+parseRules :: Signature -> Content -> Parser (Trs,Trs)
 parseRules sig doc = do strict <- mapM parseRule $ tag "rules" /> tag "rule" $ doc
                         weak <- mapM parseRule $ tag "rules" /> tag "relrules" /> tag "rule" $ doc
                         vars <- liftP get
                         return (Trs.makeTrs strict sig vars, Trs.makeTrs weak sig vars)       
 
-parseRule :: Content -> TrsParser R.Rule
+parseRule :: Content -> Parser R.Rule
 parseRule doc = liftM2 R.Rule parseLhs parseRhs
-  where parseLhs,parseRhs :: TrsParser Term
+  where parseLhs,parseRhs :: Parser Term
         parseLhs = parseOne err parseTerm $ cElems `o` (tag "rule" /> tag "lhs") $ doc
         parseRhs = parseOne err parseTerm $ cElems `o` (tag "rule" /> tag "rhs") $ doc
         err = throwError $ MalformedRule doc
 
-parseTerm :: Content -> TrsParser Term
+parseTerm :: Content -> Parser Term
 parseTerm doc = maybe err id (pv `mplus` pt)
   where pt = case verbatim $ tag "funapp" /> tag "name" /> txt $ doc of 
                "" -> Nothing
