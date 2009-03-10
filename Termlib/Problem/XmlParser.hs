@@ -32,8 +32,7 @@ data ParseError = MalformedTerm Content
                 | SymbolNotInSignature String
 
 data ParseWarning = PartiallySupportedStrategy String
-                  | ContextSensitive 
-
+                  | ContextSensitive deriving Show
 
 instance Show ParseError where
   show (MalformedTerm s) = "Malformed term:\n" ++ verbatim s

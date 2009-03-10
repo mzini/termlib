@@ -16,25 +16,52 @@ where
 import Data.Set (Set)
 
 import qualified Termlib.Trs as Trs 
+import Termlib.Trs.PrettyPrint
 import Termlib.Trs (Trs) 
 import qualified Termlib.FunctionSymbol as F
+import Termlib.Utils 
+import Text.PrettyPrint.HughesPJ
 
 data Strategy = Innermost
-              | Full deriving (Show,Eq)
+              | Full deriving (Eq, Show)
 
 data StartTerms = BasicTerms (Set F.Symbol)
                 | TermAlgebra 
-                  deriving Show
+                  deriving (Eq, Show)
 
 data Relation = Standard Trs 
               | DP Trs Trs
               | Relative Trs Trs 
-                deriving Show
+                deriving (Eq, Show)
 
 data Problem = Problem {startTerms :: StartTerms
                        , strategy :: Strategy
                        , relation :: Relation} 
-               deriving Show
+               deriving (Eq, Show)
+
+
+instance PrettyPrintable Problem where 
+  pprint (Problem terms strategy (Standard trs)) = text "PROBLEM: REWRITE relation according to the following TRS" 
+                                                   <+> pphlp_terms terms <+> pphlp_strat strategy $+$ (nest 1 $ pprint trs)
+
+  pprint (Problem terms strategy (DP strict weak)) = text "PROBLEM: DEPENDENCY PAIR problem according to the following TRSs" 
+                                                    <+> pphlp_terms terms <+> pphlp_strat strategy 
+                                                     $+$ (nest 1 (text "strict rules:" $+$ pprint strict
+                                                                  $+$ text "weak rules:" $+$ pprint weak))
+
+  pprint (Problem terms strategy (Relative strict weak)) = text "PROBLEM: RELATIVE problem according to the following TRSs" 
+                                                           <+> pphlp_terms terms <+> pphlp_strat strategy 
+                                                           $+$ (nest 1 (text "strict rules:" $+$ pprint strict
+                                                                        $+$ text "weak rules:" $+$ pprint weak))
+
+
+
+pphlp_terms (BasicTerms _) = text "restricted to basic start-terms"
+pphlp_terms _ = empty
+
+pphlp_strat Innermost = text "and innermost reductions"
+pphlp_strat _ = empty
+
 
 problem :: StartTerms -> Strategy -> Relation -> Problem
 problem = Problem 

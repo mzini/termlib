@@ -46,6 +46,10 @@ data Trs = Trs {rules :: Rules
                , variables :: Variables}
            deriving Show
 
+instance Eq Trs where
+  trs1 == trs2 = undefined
+
+
 type TrsMonad a = State.State Trs a
 
 empty = Trs [] F.emptySignature V.emptyVariables

@@ -17,9 +17,9 @@ library
                     Termlib.Rule
                     Termlib.Substitution
                     Termlib.Trs
+                    Termlib.Trs.PrettyPrint
                     Termlib.Utils
                     Termlib.Problem
                     Termlib.Problem.XmlParser
-                    Termlib.Trs.PrettyPrint
 
  build-depends:	    base, containers, mtl, HaXml, pretty
