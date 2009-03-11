@@ -81,7 +81,7 @@ modifyTrs :: (Trs -> Trs) -> TrsMonad ()
 modifyTrs f = do trs <- getTrs
                  putTrs $ f trs
                  return ()
-                 
+
 modifyRules :: (Rules -> Rules) -> TrsMonad ()
 modifyRules f = modifyTrs $ \ trs -> trs{rules=f $ rules trs}
 
@@ -101,19 +101,29 @@ putSignature sig = modifySignature $ \ _ ->  sig
 putVariables :: Variables -> TrsMonad ()
 putVariables vars = modifyVariables $ \ _ ->  vars
 
+freshSymbol' :: (F.Attributes -> Signature -> (Symbol, Signature)) -> F.Attributes -> TrsMonad Symbol
+freshSymbol' f attribs = do sig <- getSignature
+                            let (fresh, sig') = f attribs sig
+                            putSignature sig'
+                            return fresh
+
 freshSymbol ::  F.Attributes -> TrsMonad Symbol
-freshSymbol attribs = do sig <- getSignature
-                         let (fresh, sig') = F.fresh attribs $ sig
-                         putSignature sig'
-                         return fresh
+freshSymbol = freshSymbol' F.fresh
+
+getSymbol :: F.Attributes -> TrsMonad Symbol
+getSymbol = freshSymbol' F.getSymbol
+
+freshVariable' :: (String -> Variables -> (Variable, Variables)) -> String -> TrsMonad Variable
+freshVariable' f name = do vars <- getVariables
+                           let (fresh, vars') = f name vars
+                           putVariables vars'
+                           return fresh
 
 freshVariable ::  String -> TrsMonad Variable
-freshVariable name = do vars <- getVariables
-                        let (fresh, vars') = V.fresh name $ vars
-                        putVariables vars'
-                        return fresh
+freshVariable = freshVariable' V.fresh
 
-
+getVariable :: String -> TrsMonad Variable
+getVariable = freshVariable' V.getVariable
 
 rewrites s t trs = any (R.rewrites s t) $ rules trs
 

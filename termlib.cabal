@@ -21,5 +21,6 @@ library
                     Termlib.Utils
                     Termlib.Problem
                     Termlib.Problem.XmlParser
+                    Termlib.Problem.TpdbParser
 
- build-depends:	    base, containers, mtl, HaXml, pretty
+ build-depends:	    base, containers, mtl, HaXml, parsec, pretty

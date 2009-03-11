@@ -14,7 +14,7 @@ instance Enumerateable Variable where
             | otherwise = User $ (i - 1) `div` 2
 
 data Attributes = Attributes {ident :: String}
-                  deriving Show 
+                  deriving (Eq, Show)
 
 type Variables = Signature Variable Attributes
 
@@ -29,5 +29,7 @@ emptyVariables :: Variables
 emptyVariables = empty
 
 fresh :: String  -> Variables -> (Variable, Variables)
-fresh n = Signature.fresh $ Attributes $ n
+fresh n = Signature.fresh $ Attributes n
 
+getVariable :: String -> Variables -> (Variable, Variables)
+getVariable n = Signature.fromAttrib $ Attributes n

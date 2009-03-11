@@ -20,7 +20,7 @@ data Attributes = Attributes { ident :: !FunctionName
                              , isMarked :: !Bool
                              , isCompound :: !Bool
                              , label :: Maybe Int}
-                  deriving Show 
+                  deriving (Eq, Show)
 
 type Signature = Sig.Signature Symbol Attributes
 
@@ -40,11 +40,3 @@ emptySignature = Sig.empty
 
 fresh :: Attributes -> Signature -> (Symbol, Signature)
 fresh = Sig.fresh
-
-instance PrettyPrintable Attributes where
-  pprint attribs = ppname <> ppmark <> pplabel  
-    where ppname = text $ ident attribs
-          ppmark = if isMarked attribs then text "^#" else empty
-          pplabel = case label attribs of 
-                      Just l  -> text "_" <> int l
-                      Nothing -> empty
