@@ -3,10 +3,11 @@
 module Termlib.FunctionSymbol
 where
 import qualified Termlib.Signature as Sig
-import Termlib.Utils
+import Termlib.Utils (PrettyPrintable(..), Enumerateable(..))
+import Text.PrettyPrint.HughesPJ
 
-type Arity = Int
 type FunctionName = String
+type Arity = Int
 
 data Symbol = Symbol !Int deriving (Eq, Ord, Show)
 
@@ -14,10 +15,10 @@ instance Enumerateable Symbol where
   enum (Symbol i) = i
   invEnum = Symbol
 
-data Attributes = Attributes { ident :: FunctionName
-                             , arity :: Arity
-                             , isMarked :: Bool
-                             , isCompound :: Bool
+data Attributes = Attributes { ident :: !FunctionName
+                             , arity :: !Arity
+                             , isMarked :: !Bool
+                             , isCompound :: !Bool
                              , label :: Maybe Int}
                   deriving Show 
 
@@ -30,7 +31,7 @@ defaultAttribs name ar  = Attributes { ident = name
                                      , isCompound = False
                                      , label = Nothing}
 
-symbol :: String -> Signature -> Maybe Symbol
+symbol :: FunctionName -> Signature -> Maybe Symbol
 symbol name sig = Sig.findByAttribute p sig
   where p attrib = ident attrib == name
 
@@ -39,3 +40,11 @@ emptySignature = Sig.empty
 
 fresh :: Attributes -> Signature -> (Symbol, Signature)
 fresh = Sig.fresh
+
+instance PrettyPrintable Attributes where
+  pprint attribs = ppname <> ppmark <> pplabel  
+    where ppname = text $ ident attribs
+          ppmark = if isMarked attribs then text "^#" else empty
+          pplabel = case label attribs of 
+                      Just l  -> text "_" <> int l
+                      Nothing -> empty

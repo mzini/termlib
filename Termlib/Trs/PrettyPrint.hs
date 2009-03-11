@@ -23,11 +23,5 @@ pprintTerm :: Term -> TrsMonad Doc
 pprintTerm (Var x) = getVariables >>= return . (Sig.attribute V.ident x) >>= return . text
 pprintTerm (Fun f ts) = do sig <- getSignature
                            ppts <- forM ts pprintTerm
-                           let  attribs = Sig.attribute id f sig
-                                ppsym = ppname <> ppmark <> pplabel  
-                                ppname = text $ F.ident attribs
-                                ppmark = if F.isMarked attribs then text "^#" else empty
-                                pplabel = case F.label attribs of 
-                                            Just l  -> text "_" <> int l
-                                            Nothing -> empty
-                           return $ ppsym <> parens (sep $ punctuate (text ",") ppts)
+                           return $ pprint (Sig.attribute id f sig) 
+                                    <> parens (sep $ punctuate (text ",") ppts)

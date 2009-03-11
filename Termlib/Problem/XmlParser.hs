@@ -22,8 +22,8 @@ import Termlib.FunctionSymbol (Signature, Symbol)
 import Termlib.Term (Term(..))
 import qualified Termlib.Trs as Trs
 import Termlib.Trs (Trs)
-
-
+import Termlib.Utils (PrettyPrintable(..))
+import Text.PrettyPrint.HughesPJ
 
 data ParseError = MalformedTerm Content
                 | MalformedRule Content
@@ -31,18 +31,22 @@ data ParseError = MalformedTerm Content
                 | UnsupportedStrategy String
                 | SymbolNotInSignature String
 
-data ParseWarning = PartiallySupportedStrategy String
-                  | ContextSensitive deriving Show
-
-instance Show ParseError where
-  show (MalformedTerm s) = "Malformed term:\n" ++ verbatim s
-  show (MalformedRule s) = "Malformed rule:\n" ++ verbatim s
-  show (SymbolNotInSignature s) = "Symbol '" ++ s ++ "not referenced in the signature"
-  show (UnsupportedStrategy s) = "Unsupported strategy: " ++ s
-  show (UnknownError e) = e
+instance PrettyPrintable ParseError where
+  pprint (MalformedTerm s) = text "Malformed term" $$ text (verbatim s)
+  pprint (MalformedRule s) = text "Malformed rule" $$ text (verbatim s)
+  pprint (SymbolNotInSignature s) = text "Symbol" <+>  quotes (text s) <+> text "not referenced in the signature"
+  pprint (UnsupportedStrategy s) = text "Unsupported strategy" <+> quotes (text s)
+  pprint (UnknownError e) = text "Unknown error" <+> text e
 
 instance Error ParseError where
   strMsg = UnknownError
+
+data ParseWarning = PartiallySupportedStrategy String
+                  | ContextSensitive deriving Show
+
+instance PrettyPrintable ParseWarning where 
+  pprint (PartiallySupportedStrategy s) = text "Unsupported strategy" <+> quotes (text s)
+  pprint ContextSensitive = text "Contextsensitive signature not supported"
 
 type SymMap = Map String Symbol
 

@@ -21,4 +21,7 @@ findByAttribute p (Signature (m,_)) = IntMap.foldWithKey f mzero m
   where f sym attrib r =  (if p attrib then return (invEnum sym) else mzero)  `mplus` r
 
 attribute :: Enumerateable sym => (prop -> a) -> sym -> Signature sym prop -> a
-attribute f s (Signature (m,_)) = f p where Just p = IntMap.lookup (enum s) m
+attribute f s sig = f $ attributes s sig
+
+attributes :: Enumerateable sym => sym -> Signature sym prop -> prop
+attributes s (Signature (m,_)) = p where Just p = IntMap.lookup (enum s) m
