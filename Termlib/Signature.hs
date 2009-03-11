@@ -27,3 +27,6 @@ fromAttrib attribs s = case findByAttribute ((==) attribs) s of
 
 attribute :: Enumerateable sym => (prop -> a) -> sym -> Signature sym prop -> a
 attribute f s (Signature (m,_)) = f p where Just p = IntMap.lookup (enum s) m
+
+attributes :: Enumerateable sym => sym -> Signature sym prop -> prop
+attributes s (Signature (m,_)) = p where Just p = IntMap.lookup (enum s) m
