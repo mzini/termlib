@@ -2,9 +2,7 @@
 
 module Termlib.Problem.XmlParser where
 
-import Control.Monad.Error
 import Control.Monad.RWS.Lazy
-import Control.Monad.Trans (lift)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -14,6 +12,7 @@ import Data.Set (Set)
 import Text.XML.HaXml
 import Text.XML.HaXml.Parse
 
+import Control.Monad.Error
 import Termlib.Problem
 import qualified Termlib.FunctionSymbol as F
 import qualified Termlib.Rule as R
@@ -22,31 +21,8 @@ import Termlib.FunctionSymbol (Signature, Symbol)
 import Termlib.Term (Term(..))
 import qualified Termlib.Trs as Trs
 import Termlib.Trs (Trs)
-import Termlib.Utils (PrettyPrintable(..))
-import Text.PrettyPrint.HughesPJ
+import Termlib.Problem.Parser
 
-data ParseError = MalformedTerm Content
-                | MalformedRule Content
-                | UnknownError String
-                | UnsupportedStrategy String
-                | SymbolNotInSignature String
-
-instance PrettyPrintable ParseError where
-  pprint (MalformedTerm s) = text "Malformed term" $$ text (verbatim s)
-  pprint (MalformedRule s) = text "Malformed rule" $$ text (verbatim s)
-  pprint (SymbolNotInSignature s) = text "Symbol" <+>  quotes (text s) <+> text "not referenced in the signature"
-  pprint (UnsupportedStrategy s) = text "Unsupported strategy" <+> quotes (text s)
-  pprint (UnknownError e) = text "Unknown error" <+> text e
-
-instance Error ParseError where
-  strMsg = UnknownError
-
-data ParseWarning = PartiallySupportedStrategy String
-                  | ContextSensitive deriving Show
-
-instance PrettyPrintable ParseWarning where 
-  pprint (PartiallySupportedStrategy s) = text "Unsupported strategy" <+> quotes (text s)
-  pprint ContextSensitive = text "Contextsensitive signature not supported"
 
 type SymMap = Map String Symbol
 

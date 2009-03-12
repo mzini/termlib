@@ -1,14 +1,18 @@
 module Termlib.Problem.TpdbParser where
 
 import Text.ParserCombinators.Parsec.Char
-import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec hiding (ParseError)
 import Termlib.Problem
 import qualified Termlib.Trs as T
+import Termlib.Utils (PrettyPrintable(..))
+import Termlib.Problem.Parser
 
 type TPDBParser a = CharParser T.Trs a
 
---getTrs :: TPDBParser T.Trs
---getTrs = getState
+problemFromString :: String -> Either ParseError (Problem,[ParseWarning])
+problemFromString = undefined
+
+
 onTrs :: T.TrsMonad a -> TPDBParser a
 onTrs m = do trs <- getState
              let (a,trs') = T.runTrs m trs
