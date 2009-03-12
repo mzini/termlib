@@ -18,6 +18,9 @@ data Attributes = Attributes {ident :: String}
 
 type Variables = Signature Variable Attributes
 
+isVariable :: String -> Variables -> Bool
+isVariable = Signature.elemAttrib . Attributes
+
 defaultAttribs :: String -> Attributes
 defaultAttribs name  = Attributes {ident = name}
 
@@ -32,4 +35,4 @@ fresh :: String  -> Variables -> (Variable, Variables)
 fresh n = Signature.fresh $ Attributes n
 
 getVariable :: String -> Variables -> (Variable, Variables)
-getVariable n = Signature.fromAttrib $ Attributes n
+getVariable = Signature.fromAttrib . Attributes

@@ -11,6 +11,9 @@ newtype Signature sym prop = Signature (IntMap.IntMap prop, Int) deriving Show
 empty :: Signature sym prop
 empty = Signature (IntMap.empty, 0)
 
+elemAttrib :: Eq prop => prop -> Signature sym prop -> Bool
+elemAttrib attribs (Signature (sig, _)) = elem attribs . IntMap.elems $ sig
+
 fresh :: Enumerateable sym => prop -> Signature sym prop -> (sym, Signature sym prop)
 fresh attribs (Signature (sig, counter)) = (invEnum counter', Signature (sig', counter'))
   where counter' = counter + 1

@@ -31,6 +31,9 @@ defaultAttribs name ar  = Attributes { ident = name
                                      , isCompound = False
                                      , label = Nothing}
 
+isSymbol :: Attributes -> Signature -> Bool
+isSymbol = Sig.elemAttrib
+
 symbol :: FunctionName -> Signature -> Maybe Symbol
 symbol name sig = Sig.findByAttribute p sig
   where p attrib = ident attrib == name

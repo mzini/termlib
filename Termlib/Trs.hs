@@ -101,6 +101,9 @@ putSignature sig = modifySignature $ \ _ ->  sig
 putVariables :: Variables -> TrsMonad ()
 putVariables vars = modifyVariables $ \ _ ->  vars
 
+addRule :: R.Rule -> TrsMonad ()
+addRule r = modifyRules $ ((:) r . (List.delete r))
+
 freshSymbol' :: (F.Attributes -> Signature -> (Symbol, Signature)) -> F.Attributes -> TrsMonad Symbol
 freshSymbol' f attribs = do sig <- getSignature
                             let (fresh, sig') = f attribs sig
@@ -124,6 +127,10 @@ freshVariable = freshVariable' V.fresh
 
 getVariable :: String -> TrsMonad Variable
 getVariable = freshVariable' V.getVariable
+
+isVariable :: String -> TrsMonad Bool
+isVariable n = do v <- getVariables
+                  return $ V.isVariable n v
 
 rewrites s t trs = any (R.rewrites s t) $ rules trs
 
