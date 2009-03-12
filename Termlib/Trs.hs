@@ -52,8 +52,11 @@ instance Eq Trs where
 
 type TrsMonad a = State.State Trs a
 
+empty :: Trs
+
 empty = Trs [] F.emptySignature V.emptyVariables
 
+isEmpty :: Trs -> Bool
 isEmpty trs = rules trs == [] 
 
 allrules f trs = all f $ rules trs
@@ -66,6 +69,9 @@ runTrs  = State.runState
 
 getTrs :: TrsMonad Trs
 getTrs = State.get
+
+putTrs :: Trs -> TrsMonad ()
+putTrs = State.put
 
 getRules :: TrsMonad Rules
 getRules = getTrs >>= return . rules
@@ -90,10 +96,6 @@ modifySignature f = modifyTrs $ \ trs -> trs{signature=f $ signature trs}
 
 modifyVariables :: (Variables -> Variables) -> TrsMonad ()
 modifyVariables f = modifyTrs $ \ trs -> trs{variables=f $ variables trs}
-
-
-putTrs :: Trs -> TrsMonad ()
-putTrs trs = modifyTrs $ \ _ ->  trs
 
 putSignature :: Signature -> TrsMonad ()
 putSignature sig = modifySignature $ \ _ ->  sig
