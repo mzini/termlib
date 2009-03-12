@@ -83,13 +83,22 @@ rule = do lhs <- term
 
 term = try complexterm <|> simpleterm
 
-complexterm = undefined
+complexterm = do name <- ident
+                 whitespaces
+                 char '('
+                 whitespaces
+                 subterms <- termlist
+                 whitespaces
+                 char ')'
+                 onTrs $ flip Term.Fun subterms `liftM` (T.getSymbol (F.defaultAttribs name (length subterms)))
 
 simpleterm = do name <- ident
                 onTrs (do isVar <- T.isVariable name
                           case isVar of
                             True  -> Term.Var `liftM` T.getVariable name
                             False -> flip Term.Fun [] `liftM` (T.getSymbol (F.defaultAttribs name 0)))
+
+termlist = undefined
 
 condlist = undefined
 
