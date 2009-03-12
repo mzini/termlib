@@ -2,12 +2,13 @@ module Termlib.Problem
   ( Strategy(..)
   , StartTerms(..)
   , Relation(..)
-  , Problem
+  , Problem(..)
   , problem
   , standardProblem
   , dpProblem
   , relativeProblem
   , onProblem
+  , strictTrs
   , withStandardProblem
   , withDpProblem
   , withRelativeProblem)
@@ -36,9 +37,8 @@ data Relation = Standard Trs
 
 data Problem = Problem {startTerms :: StartTerms
                        , strategy :: Strategy
-                       , relation :: Relation} 
+                       , relation :: Relation}
                deriving (Eq, Show)
-
 
 instance PrettyPrintable Problem where 
   pprint (Problem terms strategy (Standard trs)) = text "PROBLEM: REWRITE relation according to the following TRS" 
@@ -62,6 +62,11 @@ pphlp_terms _ = empty
 pphlp_strat Innermost = text "and innermost reductions"
 pphlp_strat _ = empty
 
+strictTrs :: Problem -> Trs
+strictTrs prob = case relation prob of
+                   Standard trs   -> trs
+                   DP trs _       -> trs
+                   Relative trs _ -> trs
 
 problem :: StartTerms -> Strategy -> Relation -> Problem
 problem = Problem 

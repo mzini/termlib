@@ -4,6 +4,7 @@ module Termlib.Problem.TpdbParser where
 
 import Control.Monad (liftM)
 import Control.Monad.Error
+import qualified Data.Set as Set
 import Text.ParserCombinators.Parsec.Char
 import Termlib.Problem
 import Text.Parsec hiding (ParseError)
@@ -15,25 +16,38 @@ import Termlib.Utils (PrettyPrintable(..))
 import Termlib.Problem.Parser
 import Control.Monad.Writer.Lazy
 
-type TPDBParser a = ParsecT String T.Trs (ErrorT ParseError (Writer [ParseWarning])) a 
+type TPDBParser a = ParsecT String Problem (ErrorT ParseError (Writer [ParseWarning])) a 
 
 warn :: ParseWarning -> TPDBParser ()
 warn a = lift $ tell [a]
 
 problemFromString :: String -> Either ParseError (Problem,[ParseWarning])
-problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem T.empty "trs input" input of 
+problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem stdprob "trs input" input of 
                             (Left e,             _    ) -> Left e
                             (Right (Left e),     _    ) -> Left $ ParsecParseError e
                             (Right (Right prob), warns) -> Right (prob, warns)
+                          where stdprob = standardProblem TermAlgebra Full T.empty
 
 parseProblem :: TPDBParser Problem
-parseProblem = undefined
+parseProblem = speclist >> getState
 
 getTrs :: TPDBParser T.Trs
-getTrs = getState
+getTrs = strictTrs `liftM` getState
 
 setTrs :: T.Trs -> TPDBParser ()
-setTrs = setState
+setTrs trs = do prob <- getState
+                setState $ prob{relation = Standard trs}
+                return ()
+
+setStartTerms :: StartTerms -> TPDBParser ()
+setStartTerms st = do prob <- getState
+                      setState $ prob{startTerms = st}
+                      return ()
+
+setStrategy :: Strategy -> TPDBParser ()
+setStrategy strat = do prob <- getState
+                       setState $ prob{strategy = strat}
+                       return ()
 
 onTrs :: T.TrsMonad a -> TPDBParser a
 onTrs m = do trs <- getTrs
@@ -98,17 +112,73 @@ simpleterm = do name <- ident
                             True  -> Term.Var `liftM` T.getVariable name
                             False -> flip Term.Fun [] `liftM` (T.getSymbol (F.defaultAttribs name 0)))
 
-termlist = undefined
+termlist = sepBy term (whitespaces >> char ',' >> whitespaces)
 
-condlist = undefined
+condlist = sepBy cond (whitespaces >> char ',' >> whitespaces)
 
-listofthdecl = undefined
+cond = do term
+          whitespaces
+          try (string "-><-") <|> string "->"
+          whitespaces
+          term
+          return $ error "Conditional Rewriting not supported"
 
-strategydecl = undefined
+listofthdecl = sepBy (char '(' >> whitespaces >> thdecl >> whitespaces >> char ')') whitespaces >> return ()
 
-starttermdecl = undefined
+thdecl = (try theq >> error "Theory declarations not supported")
+         <|> (thid >> error "Theory declarations not supported")
 
-typeofproof = undefined
+theq = string "EQUATIONS" >> eqlist
+
+thid = ident >> whitespaces >> idlist
+
+eqlist = sepBy equation whitespaces
+
+equation = do term
+              whitespaces
+              string "=="
+              whitespaces
+              term
+              return $ error "Theory declarations not supported"
+
+strategydecl = try sfull <|> try sinner <|> try souter <|> scons
+
+sfull = string "FULL" >> setStrategy Full
+
+sinner = string "INNERMOST" >> setStrategy Innermost
+
+souter = string "OUTERMOST" >> error "Outermost strategy not supported"
+
+scons = string "CONTEXTSENSITIVE" >> csstratlist >> error "Context-Sensitive Rewriting not supported"
+
+csstratlist = sepBy csstrat whitespaces
+
+csstrat = do char '('
+             whitespaces
+             ident
+             whitespaces
+             intlist
+             whitespaces
+             char ')'
+             return $ error "Context-Sensitive Rewriting not supported"
+
+intlist = sepBy oneint whitespaces
+
+oneint = do i <- digit
+            is <- many digit
+            return (read (i:is) :: Int)
+
+starttermdecl = try sta <|> try scb <|> sautomat
+
+sta = string "FULL" >> setStartTerms TermAlgebra
+
+scb = string "CONSTRUCTOR-BASED" >> setStartTerms (BasicTerms Set.empty)
+
+sautomat = string "AUTOMATON" >> automatonstuff >> error "Automaton specified start term sets not supported"
+
+automatonstuff = anylist
+
+typeofproof = (string "TERMINATION" <|> string "COMPLEXITY") >> return ()
 
 ident = many (try innocentmin <|> try innocenteq <|> (noneOf " \n\r\t()\",|-="))
         where innocentmin = do char '-'
@@ -118,7 +188,38 @@ ident = many (try innocentmin <|> try innocenteq <|> (noneOf " \n\r\t()\",|-="))
                                notFollowedBy $ char '='
                                return '='
 
-anylist = undefined
+anylist = (anylist1 <|> anylist2 <|> anylist3 <|> anylist4 <|> anylist5) >> return ()
+
+anylist1 = do char '('
+              whitespaces
+              anylist
+              whitespaces
+              char ')'
+              whitespaces
+              anylist
+              return ()
+
+anylist2 = do char ','
+              whitespaces
+              anylist
+              return ()
+
+anylist3 = do ident
+              whitespaces
+              anylist
+              return ()
+
+anylist4 = do astring
+              whitespaces
+              anylist
+              return ()
+
+anylist5 = return ()
+
+astring = do char '"'
+             res <- many (noneOf "\"")
+             char '"'
+             return res
 
 idlist = sepBy ident whitespaces
 

@@ -58,7 +58,6 @@ empty :: Trs
 
 empty = Trs [] F.emptySignature V.emptyVariables
 
-isEmpty :: Trs -> Bool
 isEmpty trs = rules trs == [] 
 
 allrules f trs = all f $ rules trs
