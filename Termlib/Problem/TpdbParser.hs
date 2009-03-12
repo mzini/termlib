@@ -1,28 +1,44 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Termlib.Problem.TpdbParser where
 
 import Control.Monad (liftM)
+import Control.Monad.Error
 import Text.ParserCombinators.Parsec.Char
-import Text.ParserCombinators.Parsec hiding (ParseError)
 import Termlib.Problem
+import Text.Parsec hiding (ParseError)
 import qualified Termlib.FunctionSymbol as F
 import qualified Termlib.Rule as R
 import qualified Termlib.Term as Term
 import qualified Termlib.Trs as T
 import Termlib.Utils (PrettyPrintable(..))
 import Termlib.Problem.Parser
+import Control.Monad.Writer.Lazy
 
-type TPDBParser a = CharParser T.Trs a
+type TPDBParser a = ParsecT String T.Trs (ErrorT ParseError (Writer [ParseWarning])) a 
+
+warn :: ParseWarning -> TPDBParser ()
+warn a = lift $ tell [a]
 
 problemFromString :: String -> Either ParseError (Problem,[ParseWarning])
-problemFromString = undefined
+problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem T.empty "trs input" input of 
+                            (Left e,             _    ) -> Left e
+                            (Right (Left e),     _    ) -> Left $ ParsecParseError e
+                            (Right (Right prob), warns) -> Right (prob, warns)
+
+parseProblem :: TPDBParser Problem
+parseProblem = undefined
 
 getTrs :: TPDBParser T.Trs
 getTrs = getState
 
+setTrs :: T.Trs -> TPDBParser ()
+setTrs = setState
+
 onTrs :: T.TrsMonad a -> TPDBParser a
-onTrs m = do trs <- getState
+onTrs m = do trs <- getTrs
              let (a,trs') = T.runTrs m trs
-             setState trs'
+             setTrs trs'
              return a
 
 addFreshVar :: String -> TPDBParser ()
@@ -41,6 +57,7 @@ spec = do char '('
           char ')'
           return ()
 
+
 spec' = (string "VAR" >> whitespaces >> varlist)
         <|> (string "RULES" >> whitespaces >> listofrules)
         <|> (string "THEORY" >> whitespaces >> listofthdecl)
@@ -49,6 +66,7 @@ spec' = (string "VAR" >> whitespaces >> varlist)
         <|> (string "PROOF" >> whitespaces >> typeofproof)
         <|> (ident >> whitespaces >> anylist)
 
+varlist :: TPDBParser ()
 varlist = idlist >>= mapM_ addFreshVar
 
 listofrules = sepBy rule whitespaces >>= mapM_ addRule
