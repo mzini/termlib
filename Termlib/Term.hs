@@ -22,6 +22,7 @@ module Termlib.Term
 
 import qualified Termlib.Variable as V
 import qualified Termlib.FunctionSymbol as F
+import Termlib.Utils
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
@@ -77,9 +78,9 @@ varCardinality x (Fun _ xs) = (sum . map (varCardinality x)) xs
 
 canonise (Var x) varmap = case Map.lookup x varmap of
   Nothing -> addvar x varmap
-    where addvar v vm = let newelem = undefined in
-  -- MA:TODO sry (V.freshVar . Map.elems) vm in
+    where addvar v vm = let newelem = freshvar varmap in
             (Var newelem, Map.insert v newelem vm)
+          freshvar = invEnum . (1 +) . maximum . (0 :) . map enum . Map.keys
   Just oldelem -> (Var oldelem, varmap)
 canonise (Fun f xs) varmap = (Fun f (fst subresult), snd subresult)
   where subresult = foldl doSubTerm ([], varmap) xs

@@ -58,7 +58,8 @@ empty :: Trs
 
 empty = Trs [] F.emptySignature V.emptyVariables
 
-isEmpty trs = rules trs == [] 
+isEmpty :: Trs -> Bool
+isEmpty trs = rules trs == []
 
 allrules f trs = all f $ rules trs
 
@@ -96,13 +97,13 @@ modifySignature :: (Signature -> Signature) -> TrsMonad ()
 modifySignature f = modifyTrs $ \ trs -> trs{signature=f $ signature trs}
 
 modifyVariables :: (Variables -> Variables) -> TrsMonad ()
-modifyVariables f = modifyTrs $ \ trs -> trs{variables=f $ variables trs}
+modifyVariables f = modifyTrs $ \ trs -> trs{variables = f (variables trs)}
 
 putSignature :: Signature -> TrsMonad ()
 putSignature sig = modifySignature $ \ _ ->  sig
 
 putVariables :: Variables -> TrsMonad ()
-putVariables vars = modifyVariables $ \ _ ->  vars
+putVariables vars = modifyTrs $ \trs -> trs{variables = vars}
 
 addRule :: R.Rule -> TrsMonad ()
 addRule r = modifyRules $ ((:) r . (List.delete r))

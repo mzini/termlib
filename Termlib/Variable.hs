@@ -4,7 +4,7 @@ import Termlib.Signature hiding (fresh)
 import qualified Termlib.Signature as Signature
 import Termlib.Utils
 
-data Variable = Canon !Int 
+data Variable = Canon !Int
               | User !Int  deriving (Eq, Ord, Show)
 
 instance Enumerateable Variable where

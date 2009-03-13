@@ -62,28 +62,25 @@ addRule :: R.Rule -> TPDBParser ()
 addRule r = onTrs (T.addRule r) >> return ()
 
 speclist :: TPDBParser ()
-speclist = endBy spec eof >> return ()
+speclist = many spec >> eof >> return ()
 
-spec = do char '('
-          whitespaces
+spec = do finwhite (char '(')
           spec'
-          whitespaces
-          char ')'
+          finwhite (char ')')
           return ()
 
-
-spec' = (string "VAR" >> whitespaces >> varlist)
-        <|> (string "RULES" >> whitespaces >> listofrules)
-        <|> (string "THEORY" >> whitespaces >> listofthdecl)
-        <|> (try (string "STRATEGY") >> whitespaces >> strategydecl)
-        <|> (try (string "STARTTERM") >> whitespaces >> starttermdecl)
-        <|> (string "PROOF" >> whitespaces >> typeofproof)
-        <|> (ident >> whitespaces >> anylist)
+spec' = (string "VAR" >> whitespaces >> varlist <?> "VAR declaration")
+        <|> (string "RULES" >> whitespaces >> listofrules <?> "RULES declaration")
+        <|> (string "THEORY" >> whitespaces >> listofthdecl <?> "THEORY declaration")
+        <|> (try (string "STRATEGY") >> whitespaces >> strategydecl <?> "STRATEGY declaration")
+        <|> (try (string "STARTTERM") >> whitespaces >> starttermdecl <?> "STARTTERM declaration")
+        <|> (string "PROOF" >> whitespaces >> typeofproof <?> "PROOF declaration")
+--        <|> (ident >> whitespaces >> anylist <?> "any declaration")
 
 varlist :: TPDBParser ()
 varlist = idlist >>= mapM_ addFreshVar
 
-listofrules = sepBy rule whitespaces >>= mapM_ addRule
+listofrules = many (inwhite rule) >>= mapM_ addRule
 
 rule = do lhs <- term
           whitespaces
@@ -98,9 +95,7 @@ rule = do lhs <- term
 term = try complexterm <|> simpleterm
 
 complexterm = do name <- ident
-                 whitespaces
-                 char '('
-                 whitespaces
+                 finwhite $ char '('
                  subterms <- termlist
                  whitespaces
                  char ')'
@@ -112,18 +107,17 @@ simpleterm = do name <- ident
                             True  -> Term.Var `liftM` T.getVariable name
                             False -> flip Term.Fun [] `liftM` (T.getSymbol (F.defaultAttribs name 0)))
 
-termlist = sepBy term (whitespaces >> char ',' >> whitespaces)
+termlist = sepBy term (inwhite (char ','))
 
-condlist = sepBy cond (whitespaces >> char ',' >> whitespaces)
+condlist = sepBy cond (inwhite (char ','))
 
 cond = do term
           whitespaces
           try (string "-><-") <|> string "->"
-          whitespaces
-          term
+          finwhite term
           return $ error "Conditional Rewriting not supported"
 
-listofthdecl = sepBy (char '(' >> whitespaces >> thdecl >> whitespaces >> char ')') whitespaces >> return ()
+listofthdecl = many (whitespaces >> char '(' >> finwhite thdecl >> char ')') >> return ()
 
 thdecl = (try theq >> error "Theory declarations not supported")
          <|> (thid >> error "Theory declarations not supported")
@@ -132,7 +126,7 @@ theq = string "EQUATIONS" >> eqlist
 
 thid = ident >> whitespaces >> idlist
 
-eqlist = sepBy equation whitespaces
+eqlist = many (inwhite equation)
 
 equation = do term
               whitespaces
@@ -151,22 +145,19 @@ souter = string "OUTERMOST" >> error "Outermost strategy not supported"
 
 scons = string "CONTEXTSENSITIVE" >> csstratlist >> error "Context-Sensitive Rewriting not supported"
 
-csstratlist = sepBy csstrat whitespaces
+csstratlist = many (inwhite csstrat)
 
 csstrat = do char '('
-             whitespaces
-             ident
-             whitespaces
+             finwhite ident
              intlist
              whitespaces
              char ')'
              return $ error "Context-Sensitive Rewriting not supported"
 
-intlist = sepBy oneint whitespaces
+intlist = many (inwhite oneint)
 
-oneint = do i <- digit
-            is <- many digit
-            return (read (i:is) :: Int)
+oneint = do is <- many1 digit
+            return (read is :: Int)
 
 starttermdecl = try sta <|> try scb <|> sautomat
 
@@ -180,7 +171,7 @@ automatonstuff = anylist
 
 typeofproof = (string "TERMINATION" <|> string "COMPLEXITY") >> return ()
 
-ident = many (try innocentmin <|> try innocenteq <|> (noneOf " \n\r\t()\",|-="))
+ident = many1 (try innocentmin <|> try innocenteq <|> noneOf " \n\r\t()\",|-=")
         where innocentmin = do char '-'
                                notFollowedBy $ char '>'
                                return '-'
@@ -191,9 +182,7 @@ ident = many (try innocentmin <|> try innocenteq <|> (noneOf " \n\r\t()\",|-="))
 anylist = (anylist1 <|> anylist2 <|> anylist3 <|> anylist4 <|> anylist5) >> return ()
 
 anylist1 = do char '('
-              whitespaces
-              anylist
-              whitespaces
+              finwhite anylist
               char ')'
               whitespaces
               anylist
@@ -221,8 +210,20 @@ astring = do char '"'
              char '"'
              return res
 
-idlist = sepBy ident whitespaces
+idlist = many (inwhite ident)
 
 whitespace = space <|> newline <|> tab <|> char '\r'
 
 whitespaces = many whitespace
+
+whitespaces1 = many1 whitespace
+
+inwhite f = try (do whitespaces
+                    res <- f
+                    whitespaces
+                    return res)
+
+finwhite f = do whitespaces
+                res <- f
+                whitespaces
+                return res
