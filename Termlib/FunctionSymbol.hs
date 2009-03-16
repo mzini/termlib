@@ -1,15 +1,16 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module Termlib.FunctionSymbol
 where
 import qualified Termlib.Signature as Sig
 import Termlib.Utils (PrettyPrintable(..), Enumerateable(..))
 import Text.PrettyPrint.HughesPJ
-
+import Data.Typeable
 type FunctionName = String
 type Arity = Int
 
-data Symbol = Symbol !Int deriving (Eq, Ord, Show)
+data Symbol = Symbol !Int deriving (Eq, Ord, Show, Typeable)
 
 instance Enumerateable Symbol where
   enum (Symbol i) = i
@@ -47,6 +48,8 @@ fresh = Sig.fresh
 getSymbol :: Attributes -> Signature -> (Symbol, Signature)
 getSymbol = Sig.fromAttrib
 
+symbolName :: Symbol -> Signature -> FunctionName
+symbolName = Sig.attribute ident 
 
 instance PrettyPrintable Attributes where
   pprint attribs = ppname <> ppmark <> pplabel  

@@ -19,9 +19,10 @@ library
                     Termlib.Trs
                     Termlib.Trs.PrettyPrint
                     Termlib.Utils
+                    Termlib.Precedence
                     Termlib.Problem
                     Termlib.Problem.Parser
                     Termlib.Problem.XmlParser
                     Termlib.Problem.TpdbParser
 
- build-depends:	    base, containers, mtl, HaXml, parsec, pretty
+ build-depends:	    base, containers, mtl, HaXml, parsec>=3.0.0, pretty
