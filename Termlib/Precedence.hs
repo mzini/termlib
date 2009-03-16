@@ -10,7 +10,7 @@ import Data.Typeable
 data Order = Symbol :>: Symbol 
            | Symbol :~: Symbol deriving (Show, Eq, Ord, Typeable)
 
-newtype Precedence = Precedence (Signature,[Order])
+newtype Precedence = Precedence (Signature,[Order]) deriving Show
 
 instance PrettyPrintable Precedence where 
   pprint (Precedence (_, [])) = text "empty"

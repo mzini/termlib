@@ -30,9 +30,11 @@ where
 
 import qualified Data.List as List
 import qualified Data.Set as Set
+import Data.Set (Set)
 import qualified Control.Monad.State.Lazy as State
 
 import qualified Termlib.Rule as R
+import qualified Termlib.Term as T
 import qualified Termlib.FunctionSymbol as F
 import Termlib.FunctionSymbol (Symbol, Signature)
 
@@ -134,6 +136,18 @@ isVariable :: String -> TrsMonad Bool
 isVariable n = do v <- getVariables
                   return $ V.isVariable n v
 
+symbols :: Trs -> Set F.Symbol 
+symbols = Signature.symbols . signature
+
+definedSymbols :: Trs -> Set F.Symbol
+definedSymbols trs = foldl f Set.empty (rules trs) 
+  where f s (R.Rule l _) = case T.root l of 
+                             Left _  -> error "Trs.definedSymbols. Variable as lhs"
+                             Right r -> Set.insert r s
+
+constructors :: Trs -> Set F.Symbol
+constructors _ = undefined 
+
 rewrites s t trs = any (R.rewrites s t) $ rules trs
 
 topRewrites s t trs = any (R.topRewrites s t) $ rules trs
@@ -169,10 +183,3 @@ rightLinear = allrules R.rightLinear
 leftGround = allrules R.leftGround
 
 rightGround = allrules R.rightGround
-
-
-definedSymbols :: Trs -> Set.Set F.Symbol
-definedSymbols _ = undefined 
-
-constructors :: Trs -> Set.Set F.Symbol
-constructors _ = undefined 

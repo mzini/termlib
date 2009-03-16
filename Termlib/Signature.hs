@@ -1,5 +1,7 @@
 module Termlib.Signature where
 import qualified Data.IntMap as IntMap
+import qualified Data.Set as Set
+import Data.Set (Set)
 import Control.Monad 
 import Termlib.Utils
 
@@ -33,3 +35,8 @@ attribute f s (Signature (m,_)) = f p where Just p = IntMap.lookup (enum s) m
 
 attributes :: Enumerateable sym => sym -> Signature sym attribs -> attribs
 attributes s (Signature (m,_)) = p where Just p = IntMap.lookup (enum s) m
+
+
+symbols :: (Ord sym, Enumerateable sym) => Signature sym attribs -> Set sym
+symbols (Signature (m, _)) = IntMap.foldWithKey f Set.empty m
+  where f k _ = Set.insert (invEnum k)
