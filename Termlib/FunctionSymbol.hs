@@ -42,24 +42,28 @@ symbol name sig = Sig.findByAttribute p sig
 emptySignature :: Signature
 emptySignature = Sig.empty
 
-fresh :: Attributes -> Signature -> (Symbol, Signature)
-fresh = Sig.fresh
+fresh :: Signature -> Attributes -> (Symbol, Signature)
+fresh = flip Sig.fresh
 
-getSymbol :: Attributes -> Signature -> (Symbol, Signature)
-getSymbol = Sig.fromAttrib
+getSymbol :: Signature -> Attributes -> (Symbol, Signature)
+getSymbol = flip Sig.fromAttrib
 
-symbolName :: Symbol -> Signature -> FunctionName
-symbolName = Sig.attribute symIdent 
+symbolName :: Signature -> Symbol -> FunctionName
+symbolName = flip $ Sig.attribute symIdent 
 
-arity :: Symbol -> Signature -> Arity
-arity = Sig.attribute symArity 
+arity :: Signature -> Symbol -> Arity
+arity = flip $ Sig.attribute symArity 
 
-isCompound :: Symbol -> Signature -> Bool
-isCompound = Sig.attribute symIsCompound
+isCompound :: Signature -> Symbol -> Bool
+isCompound = flip $ Sig.attribute symIsCompound
 
-isMarked :: Symbol -> Signature -> Bool
-isMarked = Sig.attribute symIsMarked
+isMarked :: Signature -> Symbol -> Bool
+isMarked = flip $ Sig.attribute symIsMarked
 
+argumentPositions :: Signature -> Symbol -> [Int]
+argumentPositions sig sym  = case arity sig  sym of
+                              0 -> []
+                              n -> [1..n]
 
 instance PrettyPrintable Attributes where
   pprint attribs = ppname <> ppmark <> pplabel  

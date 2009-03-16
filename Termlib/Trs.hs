@@ -106,9 +106,9 @@ putVariables vars = modifyVariables $ \ _ ->  vars
 addRule :: R.Rule -> TrsMonad ()
 addRule r = modifyRules $ ((:) r . (List.delete r))
 
-freshSymbol' :: (F.Attributes -> Signature -> (Symbol, Signature)) -> F.Attributes -> TrsMonad Symbol
+freshSymbol' :: (Signature -> F.Attributes -> (Symbol, Signature)) -> F.Attributes -> TrsMonad Symbol
 freshSymbol' f attribs = do sig <- getSignature
-                            let (fresh, sig') = f attribs sig
+                            let (fresh, sig') = f sig attribs 
                             putSignature sig'
                             return fresh
 
