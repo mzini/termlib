@@ -16,28 +16,28 @@ instance Enumerateable Symbol where
   enum (Symbol i) = i
   invEnum = Symbol
 
-data Attributes = Attributes { ident :: !FunctionName
-                             , arity :: !Arity
-                             , isMarked :: !Bool
-                             , isCompound :: !Bool
-                             , label :: Maybe Int}
+data Attributes = Attributes { symIdent :: !FunctionName
+                             , symArity :: !Arity
+                             , symIsMarked :: !Bool
+                             , symIsCompound :: !Bool
+                             , symLabel :: Maybe Int}
                   deriving (Eq, Show)
 
 type Signature = Sig.Signature Symbol Attributes
 
 defaultAttribs :: FunctionName -> Arity -> Attributes
-defaultAttribs name ar  = Attributes { ident = name
-                                     , arity = ar
-                                     , isMarked = False
-                                     , isCompound = False
-                                     , label = Nothing}
+defaultAttribs name ar  = Attributes { symIdent = name
+                                     , symArity = ar
+                                     , symIsMarked = False
+                                     , symIsCompound = False
+                                     , symLabel = Nothing}
 
 isSymbol :: Attributes -> Signature -> Bool
 isSymbol = Sig.elemAttrib
 
 symbol :: FunctionName -> Signature -> Maybe Symbol
 symbol name sig = Sig.findByAttribute p sig
-  where p attrib = ident attrib == name
+  where p attrib = symIdent attrib == name
 
 emptySignature :: Signature
 emptySignature = Sig.empty
@@ -49,12 +49,22 @@ getSymbol :: Attributes -> Signature -> (Symbol, Signature)
 getSymbol = Sig.fromAttrib
 
 symbolName :: Symbol -> Signature -> FunctionName
-symbolName = Sig.attribute ident 
+symbolName = Sig.attribute symIdent 
+
+arity :: Symbol -> Signature -> Arity
+arity = Sig.attribute symArity 
+
+isCompound :: Symbol -> Signature -> Bool
+isCompound = Sig.attribute symIsCompound
+
+isMarked :: Symbol -> Signature -> Bool
+isMarked = Sig.attribute symIsMarked
+
 
 instance PrettyPrintable Attributes where
   pprint attribs = ppname <> ppmark <> pplabel  
-    where ppname = text $ ident attribs
-          ppmark = if isMarked attribs then text "^#" else empty
-          pplabel = case label attribs of 
+    where ppname = text $ symIdent attribs
+          ppmark = if symIsMarked attribs then text "^#" else empty
+          pplabel = case symLabel attribs of 
                       Just l  -> text "_" <> int l
                       Nothing -> empty

@@ -80,7 +80,7 @@ parseProblem doc = do (sig,symMap) <- parseOne errSig parseSignature $ tag "prob
 parseSignature :: Content -> Parser (Signature, SymMap)
 parseSignature = liftM mkSig . parseSymbolList
   where mkSig = foldr mk (F.emptySignature, Map.empty)
-        mk attrib (sig,m) = (sig', Map.insert (F.ident attrib) i m)
+        mk attrib (sig,m) = (sig', Map.insert (F.symIdent attrib) i m)
           where (i,sig') = F.fresh attrib sig
         parseSymbolList :: MonadError ParseError m => Content -> m [F.Attributes]
         parseSymbolList doc = return $ map getAttribs $ getSymbols doc
