@@ -11,11 +11,15 @@ import Text.Parsec hiding (ParseError)
 import qualified Termlib.FunctionSymbol as F
 import qualified Termlib.Rule as R
 import qualified Termlib.Term as Term
+import qualified Termlib.Variable as V
 import qualified Termlib.Trs as T
 import Termlib.Utils (PrettyPrintable(..))
 import Termlib.Problem.Parser
 import Control.Monad.Writer.Lazy
-
+import qualified Termlib.Signature as Signature
+import Termlib.Signature (SignatureMonad)
+import Termlib.FunctionSymbol (Symbol, Signature)
+import Termlib.Variable (Variable, Variables)
 type TPDBParser a = ParsecT String Problem (ErrorT ParseError (Writer [ParseWarning])) a 
 
 warn :: ParseWarning -> TPDBParser ()
@@ -26,18 +30,15 @@ problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem s
                             (Left e,             _    ) -> Left e
                             (Right (Left e),     _    ) -> Left $ ParsecParseError e
                             (Right (Right prob), warns) -> Right (prob, warns)
-                          where stdprob = standardProblem TermAlgebra Full T.empty
+                          where stdprob = standardProblem TermAlgebra Full T.empty V.emptyVariables F.emptySignature
 
 parseProblem :: TPDBParser Problem
 parseProblem = speclist >> getState
 
-getTrs :: TPDBParser T.Trs
-getTrs = strictTrs `liftM` getState
-
-setTrs :: T.Trs -> TPDBParser ()
-setTrs trs = do prob <- getState
-                setState $ prob{relation = Standard trs}
-                return ()
+modifyTrs :: (T.Trs -> T.Trs) -> TPDBParser ()
+modifyTrs f = undefined -- MA: welches denn modifizieren ? do prob <- getState
+--                 putState $ prob @{f trs
+--                 return ()
 
 setStartTerms :: StartTerms -> TPDBParser ()
 setStartTerms st = do prob <- getState
@@ -49,17 +50,27 @@ setStrategy strat = do prob <- getState
                        setState $ prob{strategy = strat}
                        return ()
 
-onTrs :: T.TrsMonad a -> TPDBParser a
-onTrs m = do trs <- getTrs
-             let (a,trs') = T.runTrs m trs
-             setTrs trs'
-             return a
+onSignature :: SignatureMonad Symbol F.Attributes a -> TPDBParser a
+onSignature m = do prob <- getState
+                   let (a,sig') = Signature.runSignature m $ signature prob
+                   putState $ prob {signature = sig'}
+                   return a
+
+getVariables :: TPDBParser Variables 
+getVariables = variables `liftM` getState 
+
+onVariables :: SignatureMonad Variable V.Attributes a -> TPDBParser a
+onVariables m = do prob <- getState
+                   let (a,vars') = Signature.runSignature m $ variables prob
+                   putState $ prob {variables = vars'}
+                   return a
+
 
 addFreshVar :: String -> TPDBParser ()
-addFreshVar name = onTrs (T.getVariable name) >> return ()
+addFreshVar name = onVariables (V.maybeFresh name) >> return ()
 
 addRule :: R.Rule -> TPDBParser ()
-addRule r = onTrs (T.addRule r) >> return ()
+addRule r = modifyTrs (T.insert r) >> return ()
 
 speclist :: TPDBParser ()
 speclist = many spec >> eof >> return ()
@@ -99,13 +110,13 @@ complexterm = do name <- ident
                  subterms <- termlist
                  whitespaces
                  char ')'
-                 onTrs $ flip Term.Fun subterms `liftM` (T.getSymbol (F.defaultAttribs name (length subterms)))
+                 onSignature $ flip Term.Fun subterms `liftM` (Signature.maybeFresh (F.defaultAttribs name (length subterms)))
 
 simpleterm = do name <- ident
-                onTrs (do isVar <- T.isVariable name
-                          case isVar of
-                            True  -> Term.Var `liftM` T.getVariable name
-                            False -> flip Term.Fun [] `liftM` (T.getSymbol (F.defaultAttribs name 0)))
+                vars <- getVariables
+                case V.variable name vars of 
+                  Just v -> return $ Term.Var v
+                  Nothing -> onSignature $ flip Term.Fun [] `liftM` (F.maybeFresh (F.defaultAttribs name 0))
 
 termlist = sepBy term (inwhite (char ','))
 

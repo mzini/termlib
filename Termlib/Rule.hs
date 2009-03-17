@@ -1,37 +1,48 @@
 module Termlib.Rule
-  (
-  rewrites,
-  topRewrites,
-  reduced,
-  topReduced,
-  bothsides,
-  lhsVariables,
-  rhsVariables,
-  isRewriteRule,
-  duplicating,
-  nonduplicating,
-  flat,
-  shallow,
-  linear,
-  ground,
-  leftFlat,
-  leftShallow,
-  leftLinear,
-  leftGround,
-  rightFlat,
-  rightShallow,
-  rightLinear,
-  rightGround,
-  Rule(..)
-  ) where
+  -- (
+  -- rewrites,
+  -- topRewrites,
+  -- reduced,
+  -- topReduced,
+  -- bothsides,
+  -- lhsVariables,
+  -- rhsVariables,
+  -- isRewriteRule,
+  -- duplicating,
+  -- nonduplicating,
+  -- flat,
+  -- shallow,
+  -- linear,
+  -- ground,
+  -- leftFlat,
+  -- leftShallow,
+  -- leftLinear,
+  -- leftGround,
+  -- rightFlat,
+  -- rightShallow,
+  -- rightLinear,
+  -- rightGround,
+  -- Rule(..)
+  -- ) 
+where
 
 import qualified Termlib.Substitution as S
 import qualified Termlib.Term as T
+import Termlib.Term (Term)
+import Termlib.Variable (Variable)
+import Termlib.FunctionSymbol (Symbol)
 import qualified Data.List as List
 import qualified Data.Map as Map
+import qualified Data.Set as Set
+import Data.Set (Set)
 import qualified Data.Maybe as Maybe
 
-data Rule = Rule {lhs :: T.Term, rhs :: T.Term} deriving Show
+data Rule = Rule {lhs :: Term, rhs :: Term} deriving Show
+variables :: Rule -> Set Variable
+variables (Rule l r) = T.variables l `Set.union` T.variables r
+
+functionSymbols :: Rule -> Set Symbol
+functionSymbols (Rule l r) = T.functionSymbols l `Set.union` T.functionSymbols r
 
 instance Eq Rule where
   r1 == r2 = lhs1 == lhs2 && canonrhs vm1 r1 == canonrhs vm2 r2
@@ -39,53 +50,67 @@ instance Eq Rule where
           (lhs2, vm2) = ((`T.canonise` Map.empty) . lhs) r2
           canonrhs vm = fst . (`T.canonise` vm) . rhs
 
+rewrites :: Term -> Term -> Rule -> Bool
 rewrites s@(T.Fun f xs) t@(T.Fun g ys) r
   | f == g && length xs == length ys = topRewrites s t r || any (\(x, y) -> rewrites x y r) (zip xs ys)
 rewrites s t r = topRewrites s t r
 
+topRewrites :: Term -> Term -> Rule -> Bool
 topRewrites s t r = maybe False (Maybe.isJust . S.match t (rhs r)) (S.match s (lhs r) S.empty)
 
+reduced :: Term -> Rule -> Bool
 reduced s@(T.Var _) r = topReduced s r
 reduced s@(T.Fun _ xs) r = topReduced s r && all (`reduced` r) xs
 
+topReduced :: Term -> Rule -> Bool
 topReduced s r = not (lhs r `S.subsumes` s)
 
+
+bothsides :: (Term -> Bool) -> Rule -> Bool
 bothsides f r = (f . lhs) r && (f . rhs) r
 
-lhsVariables = T.variables . lhs
+isRewriteRule :: Rule -> Bool
+isRewriteRule (Rule l r) = (not $ T.isVariable l) && (T.variables r) `Set.isSubsetOf` (T.variables l)
 
-rhsVariables = T.variables . rhs
+isDuplicating :: Rule -> Bool
+isDuplicating (Rule l r) = any (\x -> T.varCardinality x l < T.varCardinality x r) lvar
+  where lvar = Set.toList $ T.variables r
 
-isRewriteRule r = (not . T.isVariable . lhs) r && all (`elem` lvar) rvar
-  where lvar = lhsVariables r
-        rvar = rhsVariables r
+isNonDuplicating :: Rule -> Bool
+isNonDuplicating = not . isDuplicating
 
-duplicating r = any (\x -> T.varCardinality x (lhs r) < T.varCardinality x (rhs r)) lvar
-  where lvar = lhsVariables r
+isFlat :: Rule -> Bool
+isFlat = bothsides T.isFlat
 
-nonduplicating r = all (\x -> T.varCardinality x (lhs r) >= T.varCardinality x (rhs r)) lvar
-  where lvar = lhsVariables r
+isShallow :: Rule -> Bool
+isShallow = bothsides T.isShallow
 
-flat = bothsides T.flat
+isLinear :: Rule -> Bool
+isLinear = bothsides T.isLinear
 
-shallow = bothsides T.shallow
+isGround :: Rule -> Bool
+isGround = bothsides T.isGround
 
-linear = bothsides T.linear
+isLeftFlat :: Rule -> Bool
+isLeftFlat = T.isFlat . lhs
 
-ground = bothsides T.ground
+isRightFlat :: Rule -> Bool
+isRightFlat = T.isFlat . rhs
 
-leftFlat = T.flat . lhs
+isLeftShallow :: Rule -> Bool
+isLeftShallow = T.isShallow . lhs
 
-rightFlat = T.flat . rhs
+isRightShallow :: Rule -> Bool
+isRightShallow = T.isShallow . rhs
 
-leftShallow = T.shallow . lhs
+isLeftLinear :: Rule -> Bool
+isLeftLinear = T.isLinear . lhs
 
-rightShallow = T.shallow . rhs
+isRightLinear :: Rule -> Bool
+isRightLinear = T.isLinear . rhs
 
-leftLinear = T.linear . lhs
+isLeftGround :: Rule -> Bool
+isLeftGround = T.isGround . lhs
 
-rightLinear = T.linear . rhs
-
-leftGround = T.ground . lhs
-
-rightGround = T.ground . rhs
+isRightGround :: Rule -> Bool
+isRightGround = T.isGround . rhs

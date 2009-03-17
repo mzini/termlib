@@ -17,7 +17,9 @@ import Termlib.Problem
 import qualified Termlib.FunctionSymbol as F
 import qualified Termlib.Rule as R
 import qualified Termlib.Variable as V
-import Termlib.FunctionSymbol (Signature, Symbol)
+import Termlib.Variable (Variables)
+import qualified Termlib.Signature as Signature
+import Termlib.FunctionSymbol (Signature, Symbol, emptySignature)
 import Termlib.Term (Term(..))
 import qualified Termlib.Trs as Trs
 import Termlib.Trs (Trs)
@@ -41,10 +43,9 @@ sym name = do ms <- liftP $ ask >>= return . Map.lookup name . fromMaybe (error 
 
 var :: String -> Parser V.Variable
 var name = liftP $ do vars <- get
-                      case V.variable name vars of 
-                        Just some  -> return some
-                        Nothing -> put vars' >> return fresh
-                                  where (fresh, vars') = V.fresh name $ vars
+                      let (v, vars') = Signature.runSignature (V.maybeFresh name) vars
+                      put vars'
+                      return v
 
 warn :: ParseWarning -> Parser ()
 warn a = liftP $ tell [a]
@@ -67,21 +68,22 @@ problemFromString str = case evalRWS run Nothing V.emptyVariables of
         run = runErrorT $ runParser $ parseProblem doc
 
 parseProblem :: Content -> Parser Problem
-parseProblem doc = do (sig,symMap) <- parseOne errSig parseSignature $ tag "problem" /> tag "trs" /> tag "signature" $ doc
-                      (strict,weak) <- parseOne errTrs (parseTrs sig symMap) $ tag "problem" /> tag "trs" /> tag "rules" $ doc
+parseProblem doc = do (symMap, sig) <- parseOne errSig parseSignature $ tag "problem" /> tag "trs" /> tag "signature" $ doc
+                      (strict,weak, vars) <- parseOne errTrs (parseTrs sig symMap) $ tag "problem" /> tag "trs" /> tag "rules" $ doc
                       strategy <- parseStrategy doc
                       startTerms <- parseStartTerms (Trs.definedSymbols strict `Set.union` Trs.definedSymbols weak) doc
                       case Trs.isEmpty weak of  
-                        True -> return $ standardProblem startTerms strategy strict
-                        False -> return $ relativeProblem startTerms strategy strict weak
+                        True -> return $ standardProblem startTerms strategy strict vars sig
+                        False -> return $ relativeProblem startTerms strategy strict weak vars sig
   where errSig = throwError $ UnknownError "Error when parsing signature"
         errTrs = throwError $ UnknownError "Error when parsing trs"
 
-parseSignature :: Content -> Parser (Signature, SymMap)
+parseSignature :: Content -> Parser (SymMap, Signature)
 parseSignature = liftM mkSig . parseSymbolList
-  where mkSig = foldr mk (F.emptySignature, Map.empty)
-        mk attrib (sig,m) = (sig', Map.insert (F.symIdent attrib) i m)
-          where (i,sig') = F.fresh sig attrib
+  where mkSig attribs = Signature.runSignature (foldl mk (return Map.empty) attribs) emptySignature 
+        mk m attrib  = do map <- m 
+                          sym <- F.fresh attrib
+                          return $ Map.insert (F.symIdent attrib) sym map
         parseSymbolList :: MonadError ParseError m => Content -> m [F.Attributes]
         parseSymbolList doc = return $ map getAttribs $ getSymbols doc
           where getSymbols = tag "signature" /> tag "funcsym"
@@ -100,14 +102,14 @@ parseStartTerms defs doc = case tag "problem" /> tag "startterm" /> txt $ doc of
                             [] -> return TermAlgebra
                             _ -> return $ BasicTerms defs
                                
-parseTrs :: Signature -> SymMap -> Content -> Parser (Trs,Trs)
+parseTrs :: Signature -> SymMap -> Content -> Parser (Trs,Trs, Variables)
 parseTrs sig syms doc = P $ local (const $ Just syms) $ runParser $ parseRules sig doc
 
-parseRules :: Signature -> Content -> Parser (Trs,Trs)
+parseRules :: Signature -> Content -> Parser (Trs,Trs, Variables)
 parseRules sig doc = do strict <- mapM parseRule $ tag "rules" /> tag "rule" $ doc
                         weak <- mapM parseRule $ tag "rules" /> tag "relrules" /> tag "rule" $ doc
                         vars <- liftP get
-                        return (Trs.makeTrs strict sig vars, Trs.makeTrs weak sig vars)       
+                        return (Trs.fromRules strict, Trs.fromRules weak, vars)       
 
 parseRule :: Content -> Parser R.Rule
 parseRule doc = liftM2 R.Rule parseLhs parseRhs

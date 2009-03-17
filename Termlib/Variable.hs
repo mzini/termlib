@@ -1,6 +1,6 @@
 module Termlib.Variable where
 
-import Termlib.Signature hiding (fresh)
+import Termlib.Signature hiding (fresh, maybeFresh)
 import qualified Termlib.Signature as Signature
 import Termlib.Utils
 
@@ -18,21 +18,25 @@ data Attributes = Attributes {ident :: String}
 
 type Variables = Signature Variable Attributes
 
-isVariable :: String -> Variables -> Bool
-isVariable = Signature.elemAttrib . Attributes
-
 defaultAttribs :: String -> Attributes
 defaultAttribs name  = Attributes {ident = name}
+
+emptyVariables :: Variables
+emptyVariables = empty
 
 variable :: String -> Variables -> Maybe Variable
 variable name sig = findByAttribute p sig
   where p attrib = ident attrib == name 
 
-emptyVariables :: Variables
-emptyVariables = empty
+isVariable :: String -> Variables -> Bool
+isVariable name vars = findByAttribute ((==) $ Attributes name) vars /= Nothing
 
-fresh :: String  -> Variables -> (Variable, Variables)
+fresh :: String -> SignatureMonad Variable Attributes Variable
 fresh n = Signature.fresh $ Attributes n
 
-getVariable :: String -> Variables -> (Variable, Variables)
-getVariable = Signature.fromAttrib . Attributes
+maybeFresh :: String -> SignatureMonad Variable Attributes Variable
+maybeFresh n = Signature.maybeFresh $ Attributes n
+
+
+variableName :: Variable -> Variables -> String
+variableName = attribute ident 

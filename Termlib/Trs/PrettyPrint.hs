@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Termlib.Trs.PrettyPrint where
  
 import Termlib.Trs hiding (empty)
@@ -6,22 +7,21 @@ import qualified Termlib.FunctionSymbol as F
 import qualified Termlib.Variable as V
 import Termlib.Term
 import qualified Termlib.Signature as Sig
+import Termlib.FunctionSymbol (Signature)
+import Termlib.Variable (Variables)
 import Text.PrettyPrint.HughesPJ
 import Control.Monad (forM)
 import Termlib.Utils
 
-instance PrettyPrintable Trs where 
-  pprint trs = fst $ runTrs (forM (rules trs) pprintRule >>= return . sep) trs
+instance PrettyPrintable (Trs, Signature, Variables) where 
+  pprint (trs, sig, var) = fsep [pprintRule r sig var | r <- rules trs]
 
-pprintRule :: R.Rule -> TrsMonad Doc
-pprintRule (R.Rule l r) = do ppl <- pprintTerm l
-                             ppr <- pprintTerm r 
-                             return $ sep [ppl, text "->", ppr]
+pprintRule :: R.Rule -> Signature -> Variables -> Doc
+pprintRule (R.Rule l r) sig var = sep [pprintTerm l sig var, text "->", pprintTerm r sig var]
 
 
-pprintTerm :: Term -> TrsMonad Doc
-pprintTerm (Var x) = getVariables >>= return . (Sig.attribute V.ident x) >>= return . text
-pprintTerm (Fun f ts) = do sig <- getSignature
-                           ppts <- forM ts pprintTerm
-                           return $ pprint (Sig.attribute id f sig) 
-                                    <> parens (sep $ punctuate (text ",") ppts)
+pprintTerm :: Term -> Signature -> Variables -> Doc
+pprintTerm (Var x) _ var = text $ V.variableName x var
+pprintTerm (Fun f ts) sig var = pprint (Sig.attribute id f sig) 
+                                <> parens (sep $ punctuate (text ",") [pprintTerm t_i sig var | t_i <- ts])
+                                    

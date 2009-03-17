@@ -1,34 +1,30 @@
 module Termlib.Term
-  (
-   canonise,
-   depth,
-  functions,
-  root,
-  size,
-  fsize,
-  vardepth,
-  flat,
-  shallow,
-  linear,
-  ground,
-  immediateSubterms,
-  subterm,
-  superterm,
-  variables,
-  isVariable,
-  varCardinality,
-  Term(..)
-  ) where
+where
 
 import qualified Termlib.Variable as V
+import Termlib.Variable (Variable)
 import qualified Termlib.FunctionSymbol as F
+import Termlib.FunctionSymbol (Symbol)
 import Termlib.Utils
 import qualified Data.List as List
+import qualified Data.Set as Set
+import Data.Set (Set)
+import Control.Monad.State.Lazy as State
+
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
 
-data Term = Var V.Variable | Fun F.Symbol [Term]
+data Term = Var Variable | Fun F.Symbol [Term]
   deriving (Eq, Ord, Show)
+
+
+variables :: Term -> Set Variable
+variables (Var v) = Set.singleton v
+variables (Fun _ xs) = Set.unions $ [variables x | x <- xs]
+
+functionSymbols :: Term -> Set Symbol 
+functionSymbols (Var _) = Set.empty
+functionSymbols (Fun f xs) = Set.insert f $ Set.unions $ [functionSymbols x | x <- xs]
 
 depth (Var _) = 0
 depth (Fun _ []) = 0
@@ -37,44 +33,54 @@ depth (Fun _ xs) = (succ . maximum . map depth) xs
 root (Var v) = Left v
 root (Fun f _) = Right f
 
+size :: Term -> Int
 size (Var _) = 1
 size (Fun _ xs) = (succ . sum . map size) xs
 
+fsize :: Term -> Int
 fsize (Var _) = 0
 fsize (Fun _ xs) = (succ . sum . map fsize) xs
 
-vardepth (Var _) = Just 0
-vardepth (Fun _ xs) = if subresults == [] then Nothing else (Just . succ . maximum) subresults
-  where subresults = (Maybe.catMaybes . map vardepth) xs
+varDepth :: Term -> Maybe Int
+varDepth (Var _) = Just 0
+varDepth (Fun _ xs) = if subresults == [] then Nothing else (Just . succ . maximum) subresults
+  where subresults = (Maybe.catMaybes . map varDepth) xs
 
-flat t = depth t <= 1
+isFlat :: Term -> Bool
+isFlat t = depth t <= 1
 
-shallow = maybe True (<= 1) . vardepth
+isShallow :: Term -> Bool
+isShallow = maybe True (<= 1) . varDepth
 
-linear t = List.nub vs == vs
-  where vs = variables t
+isLinear :: Term -> Bool
+isLinear t = fst $ State.runState (l t) Set.empty 
+  where l (Var x)    = do s <- State.get
+                          return $ x `Set.notMember` s
+        l (Fun _ ts) = foldM (\ b t_i -> (b &&) `liftM` l t_i) True ts 
+  
+isGround :: Term -> Bool
+isGround = Set.null . variables
 
-ground = (== []) . variables
-
-functions (Var _) = []
-functions (Fun f xs) = (List.nub . (:) f . concatMap functions) xs
-
+immediateSubterms :: Term -> [Term]
 immediateSubterms (Var _) = []
 immediateSubterms (Fun _ xs) = xs
 
-s `subterm` t = s == t || (any (s `subterm`) . immediateSubterms) t
+isSubterm :: Term -> Term -> Bool
+s `isSubterm` t = s == t || (any (s `isSubterm`) . immediateSubterms) t
 
-superterm = flip subterm
+isSuperterm :: Term -> Term -> Bool
+isSuperterm = flip isSubterm
 
-variables (Var v) = [v]
-variables (Fun _ xs) = (List.nub . concatMap variables) xs
-
+isVariable :: Term -> Bool
 isVariable (Var _) = True
 isVariable (Fun _ _) = False
 
+
+varCardinality :: Variable -> Term -> Int
 varCardinality x (Var y) | x == y    = 1
                          | otherwise = 0
 varCardinality x (Fun _ xs) = (sum . map (varCardinality x)) xs
+
 
 canonise (Var x) varmap = case Map.lookup x varmap of
   Nothing -> addvar x varmap

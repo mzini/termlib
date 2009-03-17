@@ -19,14 +19,16 @@ import Data.Set (Set)
 import qualified Termlib.Trs as Trs 
 import Termlib.Trs.PrettyPrint
 import Termlib.Trs (Trs) 
+import Termlib.Variable (Variables)
 import qualified Termlib.FunctionSymbol as F
+import Termlib.FunctionSymbol (Signature, Symbol)
 import Termlib.Utils 
 import Text.PrettyPrint.HughesPJ
 
 data Strategy = Innermost
               | Full deriving (Eq, Show)
 
-data StartTerms = BasicTerms (Set F.Symbol)
+data StartTerms = BasicTerms (Set Symbol)
                 | TermAlgebra 
                   deriving (Eq, Show)
 
@@ -37,23 +39,24 @@ data Relation = Standard Trs
 
 data Problem = Problem {startTerms :: StartTerms
                        , strategy :: Strategy
-                       , relation :: Relation}
-               deriving (Eq, Show)
+                       , relation :: Relation
+                       , variables :: Variables
+                       , signature :: Signature} 
+               deriving (Show)
 
 instance PrettyPrintable Problem where 
-  pprint (Problem terms strategy (Standard trs)) = text "PROBLEM: REWRITE relation according to the following TRS" 
-                                                   <+> pphlp_terms terms <+> pphlp_strat strategy $+$ (nest 1 $ pprint trs)
+  pprint (Problem terms strategy (Standard trs) vars sig) = text "PROBLEM: REWRITE relation according to the following TRS" 
+                                                             <+> pphlp_terms terms <+> pphlp_strat strategy $+$ (nest 1 $ pprint (trs, sig, vars))
 
-  pprint (Problem terms strategy (DP strict weak)) = text "PROBLEM: DEPENDENCY PAIR problem according to the following TRSs" 
-                                                    <+> pphlp_terms terms <+> pphlp_strat strategy 
-                                                     $+$ (nest 1 (text "strict rules:" $+$ pprint strict
-                                                                  $+$ text "weak rules:" $+$ pprint weak))
+  pprint (Problem terms strategy (DP strict weak) vars sig) = text "PROBLEM: DEPENDENCY PAIR problem according to the following TRSs" 
+                                                              <+> pphlp_terms terms <+> pphlp_strat strategy 
+                                                              $+$ (nest 1 (text "strict rules:" $+$ pprint (strict, sig, vars)
+                                                                           $+$ text "weak rules:" $+$ pprint (weak, sig, vars)))
 
-  pprint (Problem terms strategy (Relative strict weak)) = text "PROBLEM: RELATIVE problem according to the following TRSs" 
-                                                           <+> pphlp_terms terms <+> pphlp_strat strategy 
-                                                           $+$ (nest 1 (text "strict rules:" $+$ pprint strict
-                                                                        $+$ text "weak rules:" $+$ pprint weak))
-
+  pprint (Problem terms strategy (Relative strict weak) vars sig) = text "PROBLEM: RELATIVE problem according to the following TRSs" 
+                                                                    <+> pphlp_terms terms <+> pphlp_strat strategy 
+                                                                    $+$ (nest 1 (text "strict rules:" $+$ pprint (strict, sig, vars)
+                                                                                        $+$ text "weak rules:" $+$ pprint (weak, sig, vars)))
 
 
 pphlp_terms (BasicTerms _) = text "restricted to basic start-terms"
@@ -68,16 +71,16 @@ strictTrs prob = case relation prob of
                    DP trs _       -> trs
                    Relative trs _ -> trs
 
-problem :: StartTerms -> Strategy -> Relation -> Problem
+problem :: StartTerms -> Strategy -> Relation -> Variables -> Signature -> Problem
 problem = Problem 
 
-standardProblem :: StartTerms -> Strategy -> Trs -> Problem
+standardProblem :: StartTerms -> Strategy -> Trs -> Variables -> Signature -> Problem
 standardProblem t s r = Problem t s (Standard r)
 
-dpProblem :: StartTerms -> Strategy -> Trs -> Trs -> Problem
+dpProblem :: StartTerms -> Strategy -> Trs -> Trs -> Variables -> Signature -> Problem
 dpProblem t s sr wr = Problem t s (DP sr wr)
 
-relativeProblem :: StartTerms -> Strategy -> Trs -> Trs -> Problem
+relativeProblem :: StartTerms -> Strategy -> Trs -> Trs -> Variables -> Signature -> Problem
 relativeProblem t s sr wr = Problem t s (Relative sr wr)
 
 onProblem ::  (StartTerms -> Strategy -> Trs -> a) -- ^ called on standard problems
