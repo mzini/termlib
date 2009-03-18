@@ -42,7 +42,7 @@ data Problem = Problem {startTerms :: StartTerms
                        , relation :: Relation
                        , variables :: Variables
                        , signature :: Signature} 
-               deriving (Show)
+               deriving (Eq, Show)
 
 instance PrettyPrintable Problem where 
   pprint (Problem terms strategy (Standard trs) vars sig) = text "PROBLEM: REWRITE relation according to the following TRS" 
@@ -83,29 +83,29 @@ dpProblem t s sr wr = Problem t s (DP sr wr)
 relativeProblem :: StartTerms -> Strategy -> Trs -> Trs -> Variables -> Signature -> Problem
 relativeProblem t s sr wr = Problem t s (Relative sr wr)
 
-onProblem ::  (StartTerms -> Strategy -> Trs -> a) -- ^ called on standard problems
-            -> (StartTerms -> Strategy -> Trs -> Trs -> a) -- ^ called on DP problems
-            -> (StartTerms -> Strategy -> Trs -> Trs -> a) -- ^ called on relative problems
-            -> Problem 
+onProblem ::  (StartTerms -> Strategy -> Trs -> Variables -> Signature -> a) -- ^ called on standard problems
+            -> (StartTerms -> Strategy -> Trs -> Trs -> Variables -> Signature -> a) -- ^ called on DP problems
+            -> (StartTerms -> Strategy -> Trs -> Trs -> Variables -> Signature -> a) -- ^ called on relative problems
+            -> Problem
             -> a
 onProblem fs fdp frel p = case relation p of 
-                            (Standard trs)         -> fs (startTerms p) (strategy p) trs
-                            (DP strict weak)       -> fdp (startTerms p) (strategy p) strict weak
-                            (Relative strict weak) -> frel (startTerms p) (strategy p) strict weak
+                            (Standard trs)         -> fs (startTerms p) (strategy p) trs (variables p) (signature p)
+                            (DP strict weak)       -> fdp (startTerms p) (strategy p) strict weak (variables p) (signature p)
+                            (Relative strict weak) -> frel (startTerms p) (strategy p) strict weak (variables p) (signature p)
 
-withStandardProblem :: (StartTerms -> Strategy -> Trs -> a) -> Problem -> Maybe a
-withStandardProblem f = onProblem (\ s r t -> Just $ f s r t) n n
-  where n _ _ _ _ = Nothing
+withStandardProblem :: (StartTerms -> Strategy -> Trs -> Variables -> Signature -> a) -> Problem -> Maybe a
+withStandardProblem f = onProblem (\ s r t v sig -> Just $ f s r t v sig) n n
+  where n _ _ _ _ _ _ = Nothing
 
-withDpProblem :: (StartTerms -> Strategy -> Trs -> Trs -> a) -> Problem -> Maybe a
-withDpProblem f = onProblem n (\ s r ts tw -> Just $ f s r ts tw) m
-  where n _ _ _   = Nothing
-        m _ _ _ _ = Nothing
+withDpProblem :: (StartTerms -> Strategy -> Trs -> Trs -> Variables -> Signature -> a) -> Problem -> Maybe a
+withDpProblem f = onProblem n (\ s r ts tw v sig -> Just $ f s r ts tw v sig) m
+  where n _ _ _ _ _  = Nothing
+        m _ _ _ _ _ _ = Nothing
 
-withRelativeProblem :: (StartTerms -> Strategy -> Trs -> Trs -> a) -> Problem -> Maybe a
-withRelativeProblem f = onProblem n m (\ s r ts tw -> Just $ f s r ts tw)
-  where n _ _ _   = Nothing
-        m _ _ _ _ = Nothing
+withRelativeProblem :: (StartTerms -> Strategy -> Trs -> Trs -> Variables -> Signature -> a) -> Problem -> Maybe a
+withRelativeProblem f = onProblem n m (\ s r ts tw v sig -> Just $ f s r ts tw v sig)
+  where n _ _ _ _ _ = Nothing
+        m _ _ _ _ _ _ = Nothing
 
 
 -- innermostRuntimeComplexity :: Trs -> Problem

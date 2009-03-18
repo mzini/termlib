@@ -23,7 +23,7 @@ import Control.Monad.Trans
 import Termlib.Utils
 import qualified Control.Monad.State.Lazy as State
 
-newtype Signature sym attribs = Signature (IntMap.IntMap attribs, Int) deriving Show
+newtype Signature sym attribs = Signature (IntMap.IntMap attribs, Int) deriving (Eq, Show)
 
 newtype SignatureMonad sym attribs a = SignatureMonad {
     runSig :: State.State (Signature sym attribs) a
