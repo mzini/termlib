@@ -8,6 +8,7 @@ import Termlib.Signature (SignatureMonad)
 import Termlib.Utils (PrettyPrintable(..), Enumerateable(..))
 import Text.PrettyPrint.HughesPJ
 import Data.Typeable
+import qualified Data.Set as Set
 type FunctionName = String
 type Arity = Int
 
@@ -66,6 +67,9 @@ argumentPositions :: Signature -> Symbol -> [Int]
 argumentPositions sig sym  = case arity sig  sym of
                               0 -> []
                               n -> [1..n]
+
+symbols :: Signature -> Set.Set Symbol
+symbols = Sig.symbols
 
 instance PrettyPrintable Attributes where
   pprint attribs = ppname <> ppmark <> pplabel  
