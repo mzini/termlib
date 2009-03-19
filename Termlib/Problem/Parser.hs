@@ -13,7 +13,6 @@ data ParseError = MalformedTerm Content
                 | SymbolNotInSignature String
                 | ParsecParseError Parsec.ParseError
 
-
 instance Error ParseError where
   strMsg = UnknownError
 

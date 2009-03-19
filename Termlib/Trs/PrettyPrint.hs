@@ -14,10 +14,10 @@ import Control.Monad (forM)
 import Termlib.Utils
 
 instance PrettyPrintable (Trs, Signature, Variables) where 
-  pprint (trs, sig, var) = fsep [pprintRule r sig var | r <- rules trs]
+  pprint (trs, sig, var) = vcat [pprintRule r sig var | r <- rules trs]
 
 pprintRule :: R.Rule -> Signature -> Variables -> Doc
-pprintRule (R.Rule l r) sig var = sep [pprintTerm l sig var, text "->", pprintTerm r sig var]
+pprintRule (R.Rule l r) sig var = fsep [pprintTerm l sig var, text "->", pprintTerm r sig var]
 
 
 pprintTerm :: Term -> Signature -> Variables -> Doc
