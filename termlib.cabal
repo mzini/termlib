@@ -20,6 +20,7 @@ library
                     Termlib.Trs.PrettyPrint
                     Termlib.Utils
                     Termlib.Precedence
+                    Termlib.ArgumentFiltering
                     Termlib.Problem
                     Termlib.Problem.Parser
                     Termlib.Problem.XmlParser

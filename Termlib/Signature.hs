@@ -82,3 +82,6 @@ attributes = attribute id
 symbols :: (Ord sym, Enumerateable sym) => Signature sym attribs -> Set sym
 symbols (Signature (m, _)) = IntMap.foldWithKey f Set.empty m
   where f k _ = Set.insert (invEnum k)
+
+instance (Enumerateable sym, PrettyPrintable attribs) => PrettyPrintable (sym, Signature sym attribs) where 
+  pprint (sym,sig) = pprint $ attributes sym sig

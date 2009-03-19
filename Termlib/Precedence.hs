@@ -26,3 +26,4 @@ empty sig = precedence sig []
 
 insert :: Order -> Precedence -> Precedence
 insert e (Precedence (sig, l)) = Precedence (sig, e : l)
+
