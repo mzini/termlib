@@ -35,10 +35,20 @@ problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem s
 parseProblem :: TPDBParser Problem
 parseProblem = speclist >> getState
 
-modifyTrs :: (T.Trs -> T.Trs) -> TPDBParser ()
-modifyTrs f = undefined -- MA: welches denn modifizieren ? do prob <- getState
---                 putState $ prob @{f trs
---                 return ()
+
+modifyRelation :: (Relation -> Relation) -> TPDBParser ()
+modifyRelation f = do prob <- getState
+                      putState $ prob {relation = f $ relation prob}
+
+modifyStrictTrs :: (T.Trs -> T.Trs) -> TPDBParser ()
+modifyStrictTrs f = modifyRelation f'
+  where f' (Standard trs) = Standard $ f trs
+        f' (Relative strict weak) = Relative (f strict) weak
+
+modifyWeakTrs :: (T.Trs -> T.Trs) -> TPDBParser ()
+modifyWeakTrs f = modifyRelation f'
+  where f' (Standard trs) = Relative trs $ f T.empty
+        f' (Relative strict weak) = Relative strict (f weak)
 
 setStartTerms :: StartTerms -> TPDBParser ()
 setStartTerms st = do prob <- getState
@@ -69,42 +79,52 @@ onVariables m = do prob <- getState
 addFreshVar :: String -> TPDBParser ()
 addFreshVar name = onVariables (V.maybeFresh name) >> return ()
 
-addRule :: R.Rule -> TPDBParser ()
-addRule r = modifyTrs (T.insert r) >> return ()
+addStrictRule :: R.Rule -> TPDBParser ()
+addStrictRule r = modifyStrictTrs (T.insert r) >> return ()
+
+addWeakRule :: R.Rule -> TPDBParser ()
+addWeakRule r = modifyWeakTrs (T.insert r) >> return ()
 
 speclist :: TPDBParser ()
 speclist = many spec >> eof >> return ()
 
+spec :: TPDBParser ()
 spec = do finwhite (char '(')
           spec'
           finwhite (char ')')
           return ()
 
+spec' :: TPDBParser ()
 spec' = (string "VAR" >> whitespaces >> varlist <?> "VAR declaration")
         <|> (string "RULES" >> whitespaces >> listofrules <?> "RULES declaration")
         <|> (string "THEORY" >> whitespaces >> listofthdecl <?> "THEORY declaration")
         <|> (try (string "STRATEGY") >> whitespaces >> strategydecl <?> "STRATEGY declaration")
         <|> (try (string "STARTTERM") >> whitespaces >> starttermdecl <?> "STARTTERM declaration")
         <|> (string "PROOF" >> whitespaces >> typeofproof <?> "PROOF declaration")
---        <|> (ident >> whitespaces >> anylist <?> "any declaration")
+        <|> (ident >> whitespaces >> anylist <?> "any declaration")
 
 varlist :: TPDBParser ()
 varlist = idlist >>= mapM_ addFreshVar
 
-listofrules = many (inwhite rule) >>= mapM_ addRule
 
+listofrules :: TPDBParser ()
+listofrules = many (inwhite rule) >> return ()
+
+
+rule :: TPDBParser ()
 rule = do lhs <- term
           whitespaces
           sep <- try (string "->=") <|> string "->"
           whitespaces
           rhs <- term
           condlist <- try (whitespaces >> char '|' >> whitespaces >> condlist) <|> return []
-          if sep == "->=" then error "Relative Termination not supported" else
-            if null condlist then return (R.Rule lhs rhs) else
+          if null condlist then (if sep == "->=" then addWeakRule else addStrictRule) (R.Rule lhs rhs)  else 
             error "Conditional Rewriting not supported"
 
+term :: TPDBParser Term.Term
 term = try complexterm <|> simpleterm
 
+complexterm :: TPDBParser Term.Term
 complexterm = do name <- ident
                  finwhite $ char '('
                  subterms <- termlist
@@ -112,12 +132,14 @@ complexterm = do name <- ident
                  char ')'
                  onSignature $ flip Term.Fun subterms `liftM` (Signature.maybeFresh (F.defaultAttribs name (length subterms)))
 
+simpleterm :: TPDBParser Term.Term
 simpleterm = do name <- ident
                 vars <- getVariables
                 case V.variable name vars of 
                   Just v -> return $ Term.Var v
                   Nothing -> onSignature $ flip Term.Fun [] `liftM` (F.maybeFresh (F.defaultAttribs name 0))
 
+termlist :: TPDBParser [Term.Term]
 termlist = sepBy term (inwhite (char ','))
 
 condlist = sepBy cond (inwhite (char ','))
