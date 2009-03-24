@@ -44,7 +44,6 @@ symbol name sig = Sig.findByAttribute p sig
 isSymbol :: Attributes -> Signature -> Bool
 isSymbol attribs sig = Sig.findByAttribute ((==) attribs) sig /= Nothing
 
-
 fresh :: Attributes -> SignatureMonad Symbol Attributes Symbol
 fresh = Sig.fresh
 
@@ -53,6 +52,9 @@ maybeFresh = Sig.maybeFresh
 
 symbolName :: Signature -> Symbol -> FunctionName
 symbolName = flip $ Sig.attribute symIdent 
+
+lookup :: Symbol -> Signature -> Maybe Attributes
+lookup s sig = Sig.lookup (enum s) sig
 
 arity :: Signature -> Symbol -> Arity
 arity = flip $ Sig.attribute symArity 

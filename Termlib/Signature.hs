@@ -9,6 +9,7 @@ module Termlib.Signature
   , maybeFresh
   , runSignature
   , findByAttribute
+  , Termlib.Signature.lookup
   , attribute
   , attributes
   , symbols
@@ -34,7 +35,6 @@ getSignature = SignatureMonad State.get
 
 putSignature :: Signature sym attrib -> SignatureMonad sym attrib ()
 putSignature = SignatureMonad . State.put
-
 
 liftS :: (Signature sym attribs -> a) -> SignatureMonad sym attribs a
 liftS f = f `liftM` getSignature
@@ -71,6 +71,8 @@ findByAttribute :: (Enumerateable sym, MonadPlus m) => (attribs -> Bool) -> Sign
 findByAttribute p (Signature (m,_)) = IntMap.foldWithKey f mzero m
   where f sym attrib r =  (if p attrib then return (invEnum sym) else mzero)  `mplus` r
 
+lookup :: (Enumerateable sym, Eq attribs) => Int -> Signature sym attribs -> Maybe attribs
+lookup n (Signature (m, _)) = IntMap.lookup n m
 
 attribute :: Enumerateable sym => (attribs -> a) -> sym -> Signature sym attribs -> a
 attribute f s (Signature (m,_)) = f p where Just p = IntMap.lookup (enum s) m

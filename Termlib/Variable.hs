@@ -3,6 +3,7 @@ module Termlib.Variable where
 import Termlib.Signature hiding (fresh, maybeFresh)
 import qualified Termlib.Signature as Signature
 import Termlib.Utils
+import Text.PrettyPrint.HughesPJ (text)
 
 data Variable = Canon !Int
               | User !Int  deriving (Eq, Ord, Show)
@@ -37,6 +38,11 @@ fresh n = Signature.fresh $ Attributes n
 maybeFresh :: String -> SignatureMonad Variable Attributes Variable
 maybeFresh n = Signature.maybeFresh $ Attributes n
 
+lookup :: Variable -> Variables -> Maybe Attributes
+lookup v sig = Termlib.Signature.lookup (enum v) sig
 
 variableName :: Variable -> Variables -> String
-variableName = attribute ident 
+variableName = attribute ident
+
+instance PrettyPrintable Attributes where
+  pprint = text . ident
