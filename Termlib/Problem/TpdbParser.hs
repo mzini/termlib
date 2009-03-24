@@ -26,7 +26,7 @@ warn :: ParseWarning -> TPDBParser ()
 warn a = lift $ tell [a]
 
 problemFromString :: String -> Either ParseError (Problem,[ParseWarning])
-problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem stdprob "trs input" input of 
+problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem stdprob ".trs problem input" input of 
                             (Left e,             _    ) -> Left e
                             (Right (Left e),     _    ) -> Left $ ParsecParseError e
                             (Right (Right prob), warns) -> Right (prob, warns)
@@ -212,7 +212,7 @@ ident = many1 (try innocentmin <|> try innocenteq <|> noneOf " \n\r\t()\",|-=")
                                notFollowedBy $ char '='
                                return '='
 
-anylist = (anylist1 <|> anylist2 <|> anylist3 <|> anylist4 <|> anylist5) >> return ()
+anylist = (try anylist1 <|> try anylist2 <|> try anylist3 <|> try anylist4 <|> anylist5) >> return ()
 
 anylist1 = do char '('
               finwhite anylist

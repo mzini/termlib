@@ -63,7 +63,7 @@ problemFromString :: String -> Either ParseError (Problem,[ParseWarning])
 problemFromString str = case evalRWS run Nothing V.emptyVariables of 
                           (Left e,_) -> Left e
                           (Right r,w) -> Right (r,w)
-  where doc = getContent $ xmlParse "xml:problem" str  
+  where doc = getContent $ xmlParse ".xml problem input" str  
         getContent (Document _ _ e _) = CElem e
         run = runErrorT $ runParser $ parseProblem doc
 

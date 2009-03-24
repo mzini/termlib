@@ -14,7 +14,7 @@ newtype Precedence = Precedence (Signature,[Order]) deriving Show
 
 instance PrettyPrintable Precedence where 
   pprint (Precedence (_, [])) = text "empty"
-  pprint (Precedence (sig,l)) = fsep [pp e | e <- l] 
+  pprint (Precedence (sig,l)) = fsep $ punctuate (text ",") [pp e | e <- l] 
     where pp (f :>: g)    = pprint (attributes f sig) <+> text ">" <+> pprint (attributes g sig)
           pp (f :~: g) =  pprint (attributes f sig) <+> text "~" <+> pprint (attributes g sig)
 
