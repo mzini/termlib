@@ -65,11 +65,17 @@ immediateSubterms :: Term -> [Term]
 immediateSubterms (Var _) = []
 immediateSubterms (Fun _ xs) = xs
 
-isSubterm :: Term -> Term -> Bool
-s `isSubterm` t = s == t || (any (s `isSubterm`) . immediateSubterms) t
+isProperSubtermOf :: Term -> Term -> Bool
+s `isProperSubtermOf` t = any (s `isSubtermOf`) $ immediateSubterms t
 
-isSuperterm :: Term -> Term -> Bool
-isSuperterm = flip isSubterm
+isSubtermOf :: Term -> Term -> Bool
+s `isSubtermOf` t = s == t || s `isProperSubtermOf` t
+
+isSupertermOf :: Term -> Term -> Bool
+isSupertermOf = flip isSubtermOf
+
+isProperSupertermOf :: Term -> Term -> Bool
+isProperSupertermOf = flip isProperSubtermOf
 
 isVariable :: Term -> Bool
 isVariable (Var _) = True
