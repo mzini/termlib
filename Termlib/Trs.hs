@@ -51,6 +51,10 @@ data Trs = Trs {rules :: Rules}
 empty :: Trs
 empty = Trs [] 
 
+
+union :: Trs -> Trs -> Trs
+(Trs trs1) `union` (Trs trs2) = Trs $ trs1 ++ trs2
+
 fromRules :: Rules -> Trs
 fromRules = Trs
 
@@ -65,6 +69,12 @@ foldlRules f a = foldl f a . rules
 
 foldrRules :: (Rule -> a -> a) -> a -> Trs -> a 
 foldrRules f a = foldr f a . rules
+
+mapRules :: (Rule -> Rule) -> Trs -> Trs
+mapRules f = Trs . map f . rules
+
+filterRules :: (Rule -> Bool) -> Trs -> Trs
+filterRules f = Trs . filter f . rules
 
 insert :: R.Rule -> Trs -> Trs
 insert r (Trs rs) = Trs $ r : List.delete r rs
@@ -93,7 +103,8 @@ constructors trs =  functionSymbols trs \\ definedSymbols trs
 
 -- topReduced = allrules . R.topReduced
 
--- duplicating trs = any R.duplicating $ rules trs
+isDuplicating :: Trs -> Bool
+isDuplicating trs = any R.isDuplicating $ rules trs
 
 -- nonduplicating = allrules R.nonduplicating
 

@@ -7,6 +7,7 @@ module Termlib.Signature
   , cardinality 
   , fresh
   , maybeFresh
+  , getAttributes
   , runSignature
   , findByAttribute
   , Termlib.Signature.lookup
@@ -14,6 +15,8 @@ module Termlib.Signature
   , attributes
   , symbols
   , liftS
+  , foldWithKey
+  , toList
   )
 where
 import qualified Data.IntMap as IntMap
@@ -25,6 +28,7 @@ import Termlib.Utils
 import qualified Control.Monad.State.Lazy as State
 
 newtype Signature sym attribs = Signature (IntMap.IntMap attribs, Int) deriving (Eq, Show)
+
 
 newtype SignatureMonad sym attribs a = SignatureMonad {
     runSig :: State.State (Signature sym attribs) a
@@ -80,10 +84,21 @@ attribute f s (Signature (m,_)) = f p where Just p = IntMap.lookup (enum s) m
 attributes :: Enumerateable sym => sym -> Signature sym attribs -> attribs
 attributes = attribute id
 
+getAttributes :: Enumerateable sym => sym -> SignatureMonad sym attribs attribs
+getAttributes sym = getSignature >>= return . attributes sym
+
 
 symbols :: (Ord sym, Enumerateable sym) => Signature sym attribs -> Set sym
 symbols (Signature (m, _)) = IntMap.foldWithKey f Set.empty m
   where f k _ = Set.insert (invEnum k)
 
+foldWithKey :: (Enumerateable sym) => (sym -> attribs -> b -> b) -> b -> Signature sym attribs -> b
+foldWithKey f a (Signature (m, _)) = IntMap.foldWithKey f' a m
+  where f' k = f $ invEnum k
+
+toList :: (Enumerateable sym) => Signature sym attribs -> [(sym,attribs)]
+toList (Signature (m, _)) = [(invEnum k,attrib) | (k,attrib) <- IntMap.toList m]
+
 instance (Enumerateable sym, PrettyPrintable attribs) => PrettyPrintable (sym, Signature sym attribs) where 
   pprint (sym,sig) = pprint $ attributes sym sig
+

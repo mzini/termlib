@@ -82,10 +82,16 @@ isVariable (Var _) = True
 isVariable (Fun _ _) = False
 
 
+cardinality :: Either Variable Symbol -> Term -> Int
+cardinality x (Var y) | x == (Left y)    = 1
+                      | otherwise        = 0
+cardinality x (Fun f xs) = (sum . map (cardinality x)) xs + if x == (Right f) then 1 else 0
+
 varCardinality :: Variable -> Term -> Int
-varCardinality x (Var y) | x == y    = 1
-                         | otherwise = 0
-varCardinality x (Fun _ xs) = (sum . map (varCardinality x)) xs
+varCardinality v = cardinality (Left v)
+
+funCardinality :: Symbol -> Term -> Int
+funCardinality f = cardinality (Right f)
 
 
 canonise (Var x) varmap = case Map.lookup x varmap of

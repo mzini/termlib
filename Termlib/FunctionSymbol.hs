@@ -4,7 +4,6 @@
 module Termlib.FunctionSymbol
 where
 import qualified Termlib.Signature as Sig
-import Termlib.Signature (SignatureMonad)
 import Termlib.Utils (PrettyPrintable(..), Enumerateable(..))
 import Text.PrettyPrint.HughesPJ
 import Data.Typeable
@@ -27,6 +26,8 @@ data Attributes = Attributes { symIdent :: !FunctionName
 
 type Signature = Sig.Signature Symbol Attributes
 
+type SignatureMonad a = Sig.SignatureMonad Symbol Attributes a
+
 defaultAttribs :: FunctionName -> Arity -> Attributes
 defaultAttribs name ar  = Attributes { symIdent = name
                                      , symArity = ar
@@ -44,11 +45,14 @@ symbol name sig = Sig.findByAttribute p sig
 isSymbol :: Attributes -> Signature -> Bool
 isSymbol attribs sig = Sig.findByAttribute ((==) attribs) sig /= Nothing
 
-fresh :: Attributes -> SignatureMonad Symbol Attributes Symbol
+fresh :: Attributes -> SignatureMonad Symbol
 fresh = Sig.fresh
 
-maybeFresh :: Attributes -> SignatureMonad Symbol Attributes Symbol
+maybeFresh :: Attributes -> SignatureMonad Symbol
 maybeFresh = Sig.maybeFresh
+
+getAttributes :: Symbol -> SignatureMonad Attributes
+getAttributes = Sig.getAttributes
 
 symbolName :: Signature -> Symbol -> FunctionName
 symbolName = flip $ Sig.attribute symIdent 

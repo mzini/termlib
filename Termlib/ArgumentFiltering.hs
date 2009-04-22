@@ -19,12 +19,14 @@ empty :: Signature -> ArgumentFiltering
 empty sig = AF (sig, Map.empty)
 
 instance PrettyPrintable ArgumentFiltering where 
-  pprint (AF (sig, m)) = Map.foldWithKey (\ s f d -> ppe s f $$ d) PP.empty m 
+  pprint (AF (sig, m)) | m == Map.empty = text "empty"
+                       | otherwise      = Map.foldWithKey (\ s f d -> ppe s f $$ d) PP.empty m 
     where ppe s f = fsep [ text "pi" <> parens (pprint (s, sig))
                          , text "="
                          , ppf f]
           ppf (Projection i) = text $ show i
-          ppf (Filtering is) = braces $ sep $ punctuate (text ",") $ [ text $ show i | i <- Set.toList $ is]
+          ppf (Filtering is) = brackets $ sep $ punctuate (text ",") $ [ text $ show i | i <- Set.toList $ is]
 
 alter :: (Maybe Filtering -> Maybe Filtering) -> Symbol -> ArgumentFiltering -> ArgumentFiltering
 alter f s (AF (sig, m)) = AF (sig, Map.alter f s m)
+

@@ -38,6 +38,10 @@ import Data.Set (Set)
 import qualified Data.Maybe as Maybe
 
 data Rule = Rule {lhs :: Term, rhs :: Term} deriving Show
+
+fromPair :: (Term, Term) -> Rule
+fromPair (l,r) = Rule l r
+
 variables :: Rule -> Set Variable
 variables (Rule l r) = T.variables l `Set.union` T.variables r
 
