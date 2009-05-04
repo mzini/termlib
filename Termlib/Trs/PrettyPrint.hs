@@ -14,7 +14,9 @@ import Control.Monad (forM)
 import Termlib.Utils
 
 instance PrettyPrintable (Trs, Signature, Variables) where 
-  pprint (trs, sig, var) = vcat [pprintRule r sig var | r <- rules trs]
+  pprint (trs, sig, var) = braces $ pprs (rules trs) 
+      where pprs []       = text ""
+            pprs (r : rs) = vcat $ text " " <+> pprintRule r sig var : [text "," <+> pprintRule r sig var | r <- rs]
 
 pprintRule :: R.Rule -> Signature -> Variables -> Doc
 pprintRule (R.Rule l r) sig var = fsep [pprintTerm l sig var, text "->", pprintTerm r sig var]
