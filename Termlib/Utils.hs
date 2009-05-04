@@ -8,7 +8,10 @@ class Enumerateable a where
 
 
 class PrettyPrintable a where
-  pprint :: a -> Doc 
+    pprint :: a -> Doc 
+
+instance PrettyPrintable Doc where
+    pprint = id
 
 newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
 

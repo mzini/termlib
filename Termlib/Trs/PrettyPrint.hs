@@ -15,8 +15,9 @@ import Termlib.Utils
 
 instance PrettyPrintable (Trs, Signature, Variables) where 
   pprint (trs, sig, var) = braces $ pprs (rules trs) 
-      where pprs []       = text ""
-            pprs (r : rs) = vcat $ text " " <+> pprintRule r sig var : [text "," <+> pprintRule r sig var | r <- rs]
+      where pprs []  = text ""
+            pprs [r] = pprintRule r sig var
+            pprs rs  = vcat $ [com <+> pprintRule r sig var | (com,r) <- zip (text " " : repeat (text ",")) rs]
 
 pprintRule :: R.Rule -> Signature -> Variables -> Doc
 pprintRule (R.Rule l r) sig var = fsep [pprintTerm l sig var, text "->", pprintTerm r sig var]
