@@ -2,7 +2,7 @@ module Termlib.Term
 where
 
 import qualified Termlib.Variable as V
-import Termlib.Variable (Variable)
+import Termlib.Variable (Variable(..), canonical)
 import qualified Termlib.FunctionSymbol as F
 import Termlib.FunctionSymbol (Symbol)
 import Termlib.Utils
@@ -93,14 +93,15 @@ varCardinality v = cardinality (Left v)
 funCardinality :: Symbol -> Term -> Int
 funCardinality f = cardinality (Right f)
 
+type Renaming = Map.Map Variable Variable
+canonise :: Term -> Renaming -> (Term, Renaming)
+canonise (Var x) varmap = 
+    case Map.lookup x varmap of
+      Nothing -> (Var freshVar, Map.insert x freshVar varmap)
+          where freshVar = canonical $ 1 + Map.fold (\ (Canon i) n -> max i n) 0 varmap
+      Just oldelem -> (Var oldelem, varmap)
 
-canonise (Var x) varmap = case Map.lookup x varmap of
-  Nothing -> addvar x varmap
-    where addvar v vm = let newelem = freshvar varmap in
-            (Var newelem, Map.insert v newelem vm)
-          freshvar = invEnum . (1 +) . maximum . (0 :) . map enum . Map.keys
-  Just oldelem -> (Var oldelem, varmap)
 canonise (Fun f xs) varmap = (Fun f (fst subresult), snd subresult)
-  where subresult = foldl doSubTerm ([], varmap) xs
-        doSubTerm a t = (fst a ++ [fst subsubresult], snd subsubresult)
-          where subsubresult = canonise t (snd a)
+    where subresult = foldl doSubTerm ([], varmap) xs
+          doSubTerm a t = (fst a ++ [fst subsubresult], snd subsubresult)
+              where subsubresult = canonise t (snd a)

@@ -69,7 +69,7 @@ onSignature m = do prob <- getState
 getVariables :: TPDBParser Variables 
 getVariables = variables `liftM` getState 
 
-onVariables :: SignatureMonad Variable V.Attributes a -> TPDBParser a
+onVariables :: V.VariableMonad a -> TPDBParser a
 onVariables m = do prob <- getState
                    let (a,vars') = Signature.runSignature m $ variables prob
                    putState $ prob {variables = vars'}

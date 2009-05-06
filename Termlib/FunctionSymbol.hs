@@ -1,5 +1,7 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 module Termlib.FunctionSymbol
 where
@@ -17,11 +19,14 @@ instance Enumerateable Symbol where
   enum (Symbol i) = i
   invEnum = Symbol
 
+data Label = NatLabel Int
+           | RootLabel [Symbol] deriving (Eq, Ord, Show)
+
 data Attributes = Attributes { symIdent :: !FunctionName
                              , symArity :: !Arity
                              , symIsMarked :: !Bool
                              , symIsCompound :: !Bool
-                             , symLabel :: Maybe Int}
+                             , symLabel :: Maybe Label}
                   deriving (Eq, Show)
 
 type Signature = Sig.Signature Symbol Attributes
@@ -69,6 +74,9 @@ isCompound = flip $ Sig.attribute symIsCompound
 isMarked :: Signature -> Symbol -> Bool
 isMarked = flip $ Sig.attribute symIsMarked
 
+symbolLabel :: Signature -> Symbol -> Maybe Label
+symbolLabel = flip $ Sig.attribute symLabel
+
 argumentPositions :: Signature -> Symbol -> [Int]
 argumentPositions sig sym  = case arity sig  sym of
                               0 -> []
@@ -77,10 +85,11 @@ argumentPositions sig sym  = case arity sig  sym of
 symbols :: Signature -> Set.Set Symbol
 symbols = Sig.symbols
 
-instance PrettyPrintable Attributes where
-  pprint attribs = ppname <> ppmark <> pplabel  
-    where ppname = text $ symIdent attribs
-          ppmark = if symIsMarked attribs then text "^#" else empty
-          pplabel = case symLabel attribs of 
-                      Just l  -> text "_" <> int l
-                      Nothing -> empty
+instance PrettyPrintable (Symbol, Signature) where
+  pprint (sym,sig) = ppname <> ppmark <> pplabel  
+    where ppname = text $ symbolName sig sym
+          ppmark = if isMarked sig sym then text "^#" else empty
+          pplabel = case symbolLabel sig sym of 
+                      Just (NatLabel l)  -> text "_" <> int l
+                      Just (RootLabel l) -> text "_" <> (parens $ hcat $ punctuate (text ",") [pprint (s,sig) | s <- l])
+                      Nothing            -> empty

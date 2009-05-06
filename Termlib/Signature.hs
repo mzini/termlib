@@ -99,6 +99,6 @@ foldWithKey f a (Signature (m, _)) = IntMap.foldWithKey f' a m
 toList :: (Enumerateable sym) => Signature sym attribs -> [(sym,attribs)]
 toList (Signature (m, _)) = [(invEnum k,attrib) | (k,attrib) <- IntMap.toList m]
 
-instance (Enumerateable sym, PrettyPrintable attribs) => PrettyPrintable (sym, Signature sym attribs) where 
-  pprint (sym,sig) = pprint $ attributes sym sig
+-- instance (Enumerateable sym, PrettyPrintable attribs) => PrettyPrintable (sym, Signature sym attribs) where 
+--   pprint (sym,sig) = pprint $ attributes sym sig
 

@@ -25,6 +25,6 @@ pprintRule (R.Rule l r) sig var = fsep [pprintTerm l sig var, text "->", pprintT
 
 pprintTerm :: Term -> Signature -> Variables -> Doc
 pprintTerm (Var x) _ var = text $ V.variableName x var
-pprintTerm (Fun f ts) sig var = pprint (Sig.attribute id f sig) 
+pprintTerm (Fun f ts) sig var = pprint (f,sig) 
                                 <> parens (sep $ punctuate (text ",") [pprintTerm t_i sig var | t_i <- ts])
                                     

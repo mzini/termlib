@@ -1,23 +1,24 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Termlib.Variable where
 
 import Termlib.Signature hiding (fresh, maybeFresh)
 import qualified Termlib.Signature as Signature
 import Termlib.Utils
+import Control.Monad (liftM)
 import Text.PrettyPrint.HughesPJ (text)
 
 data Variable = Canon !Int
               | User !Int  deriving (Eq, Ord, Show)
 
-instance Enumerateable Variable where
-  enum (Canon i) = 2 * i
-  enum (User i) = 2 * i + 1
-  invEnum i | even i    = Canon $ i `div` 2 
-            | otherwise = User $ (i - 1) `div` 2
+instance Enumerateable Int where
+  enum = id
+  invEnum = id
 
 data Attributes = Attributes {ident :: String}
                   deriving (Eq, Show)
 
-type Variables = Signature Variable Attributes
+type Variables = Signature Int Attributes
+type VariableMonad a = SignatureMonad Int Attributes a
 
 defaultAttribs :: String -> Attributes
 defaultAttribs name  = Attributes {ident = name}
@@ -26,23 +27,31 @@ emptyVariables :: Variables
 emptyVariables = empty
 
 variable :: String -> Variables -> Maybe Variable
-variable name sig = findByAttribute p sig
-  where p attrib = ident attrib == name 
+variable name sig = User `liftM` findByAttribute p sig
+    where p attrib = ident attrib == name 
 
 isVariable :: String -> Variables -> Bool
 isVariable name vars = findByAttribute ((==) $ Attributes name) vars /= Nothing
 
-fresh :: String -> SignatureMonad Variable Attributes Variable
-fresh n = Signature.fresh $ Attributes n
+fresh :: String -> VariableMonad Variable
+fresh n = User `liftM` (Signature.fresh $ Attributes {ident = n})
 
-maybeFresh :: String -> SignatureMonad Variable Attributes Variable
-maybeFresh n = Signature.maybeFresh $ Attributes n
+maybeFresh :: String -> VariableMonad Variable
+maybeFresh n = User `liftM` (Signature.maybeFresh $ Attributes {ident = n})
+
+canonical :: Int -> Variable
+canonical i = Canon i
+
+canonVarName :: Int -> String
+canonVarName i = "x_" ++ show i
 
 lookup :: Variable -> Variables -> Maybe Attributes
-lookup v sig = Termlib.Signature.lookup (enum v) sig
+lookup (User v)  sig = Termlib.Signature.lookup v sig
+lookup (Canon i) _   = Just $ defaultAttribs $ canonVarName i
 
 variableName :: Variable -> Variables -> String
-variableName = attribute ident
+variableName (User v)  sig = attribute ident v sig
+variableName (Canon i) _   = canonVarName i
 
-instance PrettyPrintable Attributes where
-  pprint = text . ident
+instance PrettyPrintable (Variable,Variables) where
+  pprint (v,vs) = text $ variableName v vs

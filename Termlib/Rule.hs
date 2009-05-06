@@ -50,8 +50,8 @@ functionSymbols (Rule l r) = T.functionSymbols l `Set.union` T.functionSymbols r
 
 instance Eq Rule where
   r1 == r2 = lhs1 == lhs2 && canonrhs vm1 r1 == canonrhs vm2 r2
-    where (lhs1, vm1) = ((`T.canonise` Map.empty) . lhs) r1
-          (lhs2, vm2) = ((`T.canonise` Map.empty) . lhs) r2
+    where (lhs1, vm1) = T.canonise (lhs r1) Map.empty
+          (lhs2, vm2) = T.canonise (lhs r2) Map.empty
           canonrhs vm = fst . (`T.canonise` vm) . rhs
 
 rewrites :: Term -> Term -> Rule -> Bool
