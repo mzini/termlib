@@ -17,6 +17,7 @@ module Termlib.Signature
   , liftS
   , foldWithKey
   , toList
+  , getSignature
   )
 where
 import qualified Data.IntMap as IntMap

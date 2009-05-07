@@ -1,31 +1,4 @@
 module Termlib.Trs
-  -- (
-  -- Trs,
-  -- isEmpty, 
-  -- empty,
-  -- makeTrs, 
-  -- allrules,
-  -- definedSymbols,
-  -- constructors,
-  -- rewrites,
-  -- topRewrites,
-  -- reduced,
-  -- topReduced,
-  -- duplicating,
-  -- nonduplicating,
-  -- flat,
-  -- shallow,
-  -- linear,
-  -- ground,
-  -- leftFlat,
-  -- leftShallow,
-  -- leftLinear,
-  -- leftGround,
-  -- rightFlat,
-  -- rightShallow,
-  -- rightLinear,
-  -- rightGround,
-  -- ) 
 where
 
 import qualified Data.List as List

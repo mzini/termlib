@@ -91,5 +91,7 @@ instance PrettyPrintable (Symbol, Signature) where
           ppmark = if isMarked sig sym then text "^#" else empty
           pplabel = case symbolLabel sig sym of 
                       Just (NatLabel l)  -> text "_" <> int l
+                      Just (RootLabel []) -> empty
+                      Just (RootLabel [s]) -> text "_" <> pprint (s,sig)
                       Just (RootLabel l) -> text "_" <> (parens $ hcat $ punctuate (text ",") [pprint (s,sig) | s <- l])
                       Nothing            -> empty
