@@ -26,4 +26,6 @@ library
                     Termlib.Problem.XmlParser
                     Termlib.Problem.TpdbParser
 
+ ghc-options:       -O2
+
  build-depends:	    base>=3.0.3.0, containers, mtl, HaXml, parsec>=3.0.0, pretty
