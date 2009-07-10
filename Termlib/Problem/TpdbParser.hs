@@ -29,8 +29,15 @@ problemFromString :: String -> Either ParseError (Problem,[ParseWarning])
 problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem stdprob ".trs problem input" input of 
                             (Left e,             _    ) -> Left e
                             (Right (Left e),     _    ) -> Left $ ParsecParseError e
-                            (Right (Right prob), warns) -> Right (prob, warns)
+                            (Right (Right prob), warns) -> Right (prob{startTerms = finStartTerms prob}, warns)
                           where stdprob = standardProblem TermAlgebra Full T.empty V.emptyVariables F.emptySignature
+                                finStartTerms = onProblem finStd finDp finRel
+                                finStd sts strat trs vars sig         = mkStartTerms sts (T.definedSymbols trs) (T.constructors trs)
+                                finDp sts strat strict weak vars sig  = mkStartTerms sts (T.definedSymbols strict) (T.constructors weak)
+                                finRel sts strat strict weak vars sig = mkStartTerms sts (T.definedSymbols both) (T.constructors both)
+                                    where both = strict `T.union` weak
+                                mkStartTerms TermAlgebra _ _ = TermAlgebra
+                                mkStartTerms (BasicTerms _ _) d c = BasicTerms d c 
 
 parseProblem :: TPDBParser Problem
 parseProblem = speclist >> getState
@@ -196,7 +203,7 @@ starttermdecl = try sta <|> try scb <|> sautomat
 
 sta = string "FULL" >> setStartTerms TermAlgebra
 
-scb = string "CONSTRUCTOR-BASED" >> setStartTerms (BasicTerms Set.empty)
+scb = string "CONSTRUCTOR-BASED" >> setStartTerms (BasicTerms undefined undefined)
 
 sautomat = string "AUTOMATON" >> automatonstuff >> error "Automaton specified start term sets not supported"
 

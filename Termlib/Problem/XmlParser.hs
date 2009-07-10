@@ -71,7 +71,10 @@ parseProblem :: Content -> Parser Problem
 parseProblem doc = do (symMap, sig) <- parseOne errSig parseSignature $ tag "problem" /> tag "trs" /> tag "signature" $ doc
                       (strict,weak, vars) <- parseOne errTrs (parseTrs sig symMap) $ tag "problem" /> tag "trs" /> tag "rules" $ doc
                       strategy <- parseStrategy doc
-                      startTerms <- parseStartTerms (Trs.definedSymbols strict `Set.union` Trs.definedSymbols weak) doc
+                      let both    =  strict `Trs.union` weak
+                          constrs = Trs.definedSymbols both
+                          defs    = Trs.constructors both
+                      startTerms <- parseStartTerms defs constrs doc
                       case Trs.isEmpty weak of  
                         True -> return $ standardProblem startTerms strategy strict vars sig
                         False -> return $ relativeProblem startTerms strategy strict weak vars sig
@@ -97,10 +100,10 @@ parseStrategy doc = case verbatim $ tag "problem" /> tag "strategy" /> txt $ doc
                       "FULL" -> return Full
                       a -> throwError $ UnsupportedStrategy a
 
-parseStartTerms :: Set F.Symbol -> Content -> Parser StartTerms
-parseStartTerms defs doc = case tag "problem" /> tag "startterm" /> txt $ doc of
-                            [] -> return TermAlgebra
-                            _ -> return $ BasicTerms defs
+parseStartTerms :: Set F.Symbol -> Set F.Symbol -> Content -> Parser StartTerms
+parseStartTerms defs constrs doc = case tag "problem" /> tag "startterm" /> txt $ doc of
+                                     [] -> return TermAlgebra
+                                     _ -> return $ BasicTerms defs constrs
                                
 parseTrs :: Signature -> SymMap -> Content -> Parser (Trs,Trs, Variables)
 parseTrs sig syms doc = P $ local (const $ Just syms) $ runParser $ parseRules sig doc

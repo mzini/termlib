@@ -30,7 +30,7 @@ import Text.PrettyPrint.HughesPJ
 data Strategy = Innermost
               | Full deriving (Eq, Show)
 
-data StartTerms = BasicTerms (Set Symbol)
+data StartTerms = BasicTerms (Set Symbol) (Set Symbol)
                 | TermAlgebra 
                   deriving (Eq, Show)
 
@@ -84,8 +84,6 @@ withRelativeProblem f = onProblem n m (\ s r ts tw v sig -> Just $ f s r ts tw v
 
 
 
-
-
 instance PrettyPrintable Problem where 
   pprint (Problem terms strategy (Standard trs) vars sig) = text "REWRITE relation according to the following TRS" 
                                                              <+> pphlp_terms terms <+> pphlp_strat strategy $+$ (nest 1 $ pprint (trs, sig, vars))
@@ -101,7 +99,7 @@ instance PrettyPrintable Problem where
                                                                                         $+$ text "weak rules:" $+$ pprint (weak, sig, vars)))
 
 
-pphlp_terms (BasicTerms _) = text "restricted to basic start-terms"
+pphlp_terms (BasicTerms _ _) = text "restricted to basic start-terms"
 pphlp_terms _ = empty
 
 pphlp_strat Innermost = text "and innermost reductions"
@@ -122,7 +120,7 @@ measureName p = ms (strategy p) <+> mn (relation p) <+> mt (startTerms p) <> tex
           mn (Relative _ _) = text "relative"
           ms Innermost = text "innermost"
           ms Full      = empty
-          mt (BasicTerms _) = text "runtime"
+          mt (BasicTerms _ _) = text "runtime"
           mt TermAlgebra    = text "derivational"
 
 
