@@ -17,6 +17,7 @@ library
                     Termlib.Rule
                     Termlib.Substitution
                     Termlib.Trs
+                    Termlib.TermGraph
                     Termlib.Trs.PrettyPrint
                     Termlib.Utils
                     Termlib.Precedence
