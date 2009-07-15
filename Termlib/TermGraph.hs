@@ -143,6 +143,9 @@ subgraphAt g n = case Map.member n (edges g) of
 rootedEdge :: TermGraph -> Edge
 rootedEdge g = fromMaybe (error "TermGraph.rootedEdge") $ edge (root g) g
 
+children :: TermGraph -> Node -> Maybe (Set Node)
+children g n = do e <- edge n g 
+                  return $ Set.fromList $ sources e
 
 -- edgeAt :: TermGraph -> Position -> Maybe Edge
 -- edgeAt g p = rootedEdge `liftM` subgraphAt g p
@@ -223,10 +226,52 @@ replace (new, match) (tg, node) = garbageCollect $ tg {edges = Map.delete node (
                                                          State.put s{content = Map.insert n n' m, newId = i + 1}
                                                          return $ n'
 
-stp :: TGS -> Strategy -> TermGraph -> Maybe TermGraph
-stp tgs strat tg =
+step :: TGS -> Strategy -> TermGraph -> Maybe TermGraph
+step tgs strat tg =
     do redexNode <- strat tg
        (rhs, match) <- msum [ (,) (rhs rule) `liftM` match (lhs rule) (tg,redexNode) | rule <- rules tgs]
        return $ replace (rhs, match) (tg,redexNode)
                         
-                  
+
+termEq :: TermGraph -> Node -> Node -> Bool
+-- Pointer equality
+termEq g n1 n2 = fromMaybe (error $ "TermGraph.termEq" ++ show n1 ++ show n2) comp
+    where comp = do e1 <- edge n1 g
+                    e2 <- edge n2 g
+                    return $ label e1 == label e2 && sources e1 == sources e2
+
+
+rename :: TermGraph -> Node -> Node -> TermGraph
+rename tg node newNode = TermGraph (maybeReplace $ root tg) edges'
+    where maybeReplace n | n == node = newNode 
+                         | otherwise = n
+          edges' = Map.foldWithKey f Map.empty (edges tg) 
+          f n e = Map.insert 
+                    (maybeReplace n) 
+                    e{target = maybeReplace (target e)
+                     , sources = map maybeReplace (sources e)}
+
+                         
+
+nfNormalize :: TGS -> TermGraph -> TermGraph
+nfNormalize tgs g = step (nfNodes (root g)) g
+    where step nfs g | prs == []  = g 
+                     | otherwise = step nfs $ foldl mergeNodes g prs 
+              where prs = [ (n1, n2) | 
+                            n1 <- Set.toList nfs, 
+                            n2 <- Set.toList nfs, 
+                            n1 /= n2, 
+                            termEq g n1 n2]
+                    mergeNodes g' = uncurry $ rename g'
+              
+          nfNodes n = case subgraphAt g n of 
+                        Just sg -> if isRedex tgs sg 
+                                   then Set.unions $ map nfNodes $ 
+                                        Set.elems (fromMaybe (error "TermGraph.nfNormalize.children") $
+                                                   children g n)
+                                   else nodes sg
+                        Nothing -> error $ "TermGraph.nfNormalize.nfNodes" ++ show n
+                             
+
+innermostRewriteStep :: TGS -> TermGraph -> Maybe TermGraph
+innermostRewriteStep tgs g = step tgs (innermost tgs) $ nfNormalize tgs g
