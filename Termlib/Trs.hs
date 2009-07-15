@@ -24,6 +24,14 @@ data Trs = Trs {rules :: Rules}
 empty :: Trs
 empty = Trs [] 
 
+invert :: Trs -> Trs
+invert = Trs . map R.invert . rules
+
+lhss :: Trs -> [T.Term]
+lhss = map R.lhs . rules
+
+rhss :: Trs -> [T.Term]
+rhss = map R.rhs . rules
 
 union :: Trs -> Trs -> Trs
 (Trs trs1) `union` (Trs trs2) = Trs $ trs1 ++ trs2

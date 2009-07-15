@@ -39,6 +39,9 @@ import qualified Data.Maybe as Maybe
 
 data Rule = Rule {lhs :: Term, rhs :: Term} deriving Show
 
+invert :: Rule -> Rule
+invert (Rule l r) = Rule r l
+
 fromPair :: (Term, Term) -> Rule
 fromPair (l,r) = Rule l r
 
