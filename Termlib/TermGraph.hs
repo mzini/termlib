@@ -254,16 +254,16 @@ rename tg node newNode = TermGraph (maybeReplace $ root tg) edges'
                          
 
 nfNormalize :: TGS -> TermGraph -> TermGraph
-nfNormalize tgs g = step (nfNodes (root g)) g
-    where step nfs g | prs == []  = g 
-                     | otherwise = step nfs $ foldl mergeNodes g prs 
+nfNormalize tgs g = step g
+    where step g | prs == [] = g 
+                 | otherwise = step $ foldl mergeNodes g prs 
               where prs = [ (n1, n2) | 
-                            n1 <- Set.toList nfs, 
-                            n2 <- Set.toList nfs, 
+                            n1 <- nfs, 
+                            n2 <- nfs, 
                             n1 /= n2, 
                             termEq g n1 n2]
                     mergeNodes g' = uncurry $ rename g'
-              
+          nfs = Set.toList $ nfNodes $ root g
           nfNodes n = case subgraphAt g n of 
                         Just sg -> if isRedex tgs sg 
                                    then Set.unions $ map nfNodes $ 
