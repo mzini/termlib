@@ -251,7 +251,6 @@ rename tg node newNode = TermGraph (maybeReplace $ root tg) edges'
                     e{target = maybeReplace (target e)
                      , sources = map maybeReplace (sources e)}
 
-                         
 
 nfNormalize :: TGS -> TermGraph -> TermGraph
 nfNormalize tgs g = step g
