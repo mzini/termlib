@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module Termlib.Rule
   -- (
   -- rewrites,
@@ -31,6 +33,7 @@ import qualified Termlib.Term as T
 import Termlib.Term (Term)
 import Termlib.Variable (Variable)
 import Termlib.FunctionSymbol (Symbol)
+import Termlib.Utils
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -38,6 +41,12 @@ import Data.Set (Set)
 import qualified Data.Maybe as Maybe
 
 data Rule = Rule {lhs :: Term, rhs :: Term} deriving Show
+
+instance PrettyPrintable [Rule] where
+  pprint rs = undefined
+
+instance PrettyPrintable Rule where
+  pprint r = undefined
 
 invert :: Rule -> Rule
 invert (Rule l r) = Rule r l
