@@ -16,8 +16,9 @@ import qualified Termlib.Variable as Var
 import Termlib.Variable (Variable)
 import qualified Termlib.FunctionSymbol as Fun
 import Termlib.FunctionSymbol (Symbol)
-
-
+import qualified Data.Graph.Inductive.Graph as Graph
+import Data.Graph.Inductive.PatriciaTree (Gr)
+import qualified Data.GraphViz as GraphViz
 data EdgeLabel = VL Variable 
                     | FL Symbol deriving (Eq, Ord, Show)
 
@@ -198,13 +199,14 @@ innermost tgs g = case msum [innermost tgs gi | gi <- directSubgraphs g,
                            then Just (root g)
                            else Nothing
                 a       -> a
-
+freshId :: TermGraph -> Int
+freshId tg = 1 + foldl max 0 [nodeId n | n <- Set.toList $ nodes tg] 
 
 replace :: (TermGraph, Match) ->  (TermGraph, Node) -> TermGraph
 replace (new, match) (tg, node) = garbageCollect $ tg {edges = Map.delete node (edges tg) `Map.union` edges'}
     where root'     = fromMaybe (error "TermGraph.replace") $ Map.lookup (root new) m 
 
-          (edges',(St m _)) = State.runState wireNew (St (Map.singleton (root new) node) freshId)
+          (edges',(St m _)) = State.runState wireNew (St (Map.singleton (root new) node) (freshId tg))
                     
           wireNew  = foldM 
                      (\ es (n,e) -> 
@@ -216,7 +218,7 @@ replace (new, match) (tg, node) = garbageCollect $ tg {edges = Map.delete node (
                      Map.empty $ 
                      Map.toList (edges new)
 
-          freshId   = 1 + foldl max 0 [nodeId n | n <- Set.toList $ nodes tg] 
+
           nodeOf n = case label `liftM` edge n new of 
                        Just (VL v) -> return $ fromMaybe (error "TermGraph.replace") $ Map.lookup v match
                        _           -> do s@(St m i) <- State.get
@@ -274,3 +276,23 @@ nfNormalize tgs g = step g
 
 innermostRewriteStep :: TGS -> TermGraph -> Maybe TermGraph
 innermostRewriteStep tgs g = step tgs (innermost tgs) $ nfNormalize tgs g
+
+
+data GNodeLabel = N
+                | VN String
+                | FN String
+                | Rt
+
+type GEdgeLabel = ()
+
+toGraph :: TermGraph -> Gr GNodeLabel GEdgeLabel
+toGraph tg = Graph.mkGraph ns es
+    where ns = [ (nodeId n , N) | n <-  Map.keys $ edges tg]
+          es = concat [ mke i (nodeId $ target e) : [mke (nodeId s) i  | s <- sources e]
+                        | (i,e) <- zip [j+1..] (Map.elems $ edges tg)]
+
+          mke from to = (from,to,())
+          j = freshId tg
+
+toDot :: TermGraph -> GraphViz.DotGraph
+toDot tg = GraphViz.graphToDot (toGraph tg) [] (const []) (const [])
