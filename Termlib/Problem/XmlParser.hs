@@ -2,28 +2,26 @@
 
 module Termlib.Problem.XmlParser where
 
+import Control.Monad.Error
 import Control.Monad.RWS.Lazy
-import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Map (Map)
 import qualified Data.Set as Set
-import Data.Maybe (fromMaybe)
 import Data.Set (Set)
-
+import Data.Maybe (fromMaybe)
 import Text.XML.HaXml
 import Text.XML.HaXml.Parse
-
-import Control.Monad.Error
-import Termlib.Problem
-import qualified Termlib.FunctionSymbol as F
-import qualified Termlib.Rule as R
-import qualified Termlib.Variable as V
-import Termlib.Variable (Variables)
-import qualified Termlib.Signature as Signature
 import Termlib.FunctionSymbol (Signature, Symbol, emptySignature)
+import Termlib.Problem
+import Termlib.Problem.ParseErrors (ParseError (..), ParseWarning (..))
 import Termlib.Term (Term(..))
 import qualified Termlib.Trs as Trs
 import Termlib.Trs (Trs)
-import Termlib.Problem.Parser
+import Termlib.Variable (Variables)
+import qualified Termlib.FunctionSymbol as F
+import qualified Termlib.Rule as R
+import qualified Termlib.Signature as Signature
+import qualified Termlib.Variable as V
 
 
 type SymMap = Map String Symbol

@@ -107,12 +107,12 @@ toTerm g = toTerm' (root g)
     where toTerm' r = case label e of
                         VL x -> Var x
                         FL f -> Fun f $ map toTerm' (sources e)
-              where e = fromMaybe (error "TermGraph.toTerm") $ edge r g
+              where e = fromMaybe (error $ "TermGraph.toTerm: graph not well-formed. no edge at node " ++ show r) $ edge r g
 
 garbageCollect :: TermGraph -> TermGraph
 garbageCollect g = g {edges = gc (root g)}
     where gc n = Map.insert n e $ Map.unions [gc m | m <- sources e]
-              where e = fromMaybe (error "TermGraph.toTerm") $  edge n g
+              where e = fromMaybe (error $ "TermGraph.garbageCollect: graph not well-formed. no edge at node " ++ show n) $  edge n g
 
 
 type Position = [Int]

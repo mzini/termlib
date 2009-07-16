@@ -1,33 +1,27 @@
-module Termlib.Problem.Parser where
-import Termlib.Utils (PrettyPrintable(..))
-import Text.PrettyPrint.HughesPJ
+module Termlib.Problem.Parser ( problemFromFile ) where
 import Control.Monad.Error
 
-import Text.XML.HaXml
-import qualified Text.ParserCombinators.Parsec as Parsec 
-
-data ParseError = MalformedTerm Content
-                | MalformedRule Content
-                | UnknownError String
-                | UnsupportedStrategy String
-                | SymbolNotInSignature String
-                | ParsecParseError Parsec.ParseError
-
-instance Error ParseError where
-  strMsg = UnknownError
-
-data ParseWarning = PartiallySupportedStrategy String
-                  | ContextSensitive deriving Show
+import Control.Monad.Error
+import System.FilePath (takeExtension)
+import Termlib.Problem
+import Termlib.Problem.ParseErrors
+import qualified Termlib.Problem.TpdbParser as TpdbParser
+import qualified Termlib.Problem.XmlParser as XmlParser
 
 
-instance PrettyPrintable ParseError where
-  pprint (MalformedTerm s) = text "Malformed term" $$ text (verbatim s)
-  pprint (MalformedRule s) = text "Malformed rule" $$ text (verbatim s)
-  pprint (SymbolNotInSignature s) = text "Symbol" <+>  quotes (text s) <+> text "not referenced in the signature"
-  pprint (UnsupportedStrategy s) = text "Unsupported strategy" <+> quotes (text s)
-  pprint (UnknownError e) = text "Unknown error" <+> text e
-  pprint (ParsecParseError e) = text $ show e
+problemFromString :: String -> Maybe Problem
+problemFromString input = case (XmlParser.problemFromString input, TpdbParser.problemFromString input) of 
+                            (Right e,_)        -> Just $ fst e
+                            (_      , Right e) -> Just $ fst e
+                            _                  -> Nothing
 
-instance PrettyPrintable ParseWarning where 
-  pprint (PartiallySupportedStrategy s) = text "Unsupported strategy" <+> quotes (text s)
-  pprint ContextSensitive = text "Contextsensitive signature not supported"
+problemFromFile :: String -> IO (Either ParseError (Problem,[ParseWarning]))
+problemFromFile input = do minput <- getInputStr 
+                           case minput of 
+                             Just str -> return $ parser str
+                             Nothing  -> return $ throwError $ ProblemNotFoundError input
+    where getInputStr = catch (Just `liftM` readFile input) (const $ return Nothing)
+          parser | takeExtension input == ".trs" = TpdbParser.problemFromString
+                 | takeExtension input == ".xml" = XmlParser.problemFromString
+                 | otherwise                     = const $ throwError $ UnknownFileError input
+

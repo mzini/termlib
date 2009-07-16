@@ -14,7 +14,7 @@ import qualified Termlib.Term as Term
 import qualified Termlib.Variable as V
 import qualified Termlib.Trs as T
 import Termlib.Utils (PrettyPrintable(..))
-import Termlib.Problem.Parser
+import Termlib.Problem.ParseErrors (ParseError (..), ParseWarning (..))
 import Control.Monad.Writer.Lazy
 import qualified Termlib.Signature as Signature
 import Termlib.Signature (SignatureMonad)
@@ -30,14 +30,14 @@ problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem s
                             (Left e,             _    ) -> Left e
                             (Right (Left e),     _    ) -> Left $ ParsecParseError e
                             (Right (Right prob), warns) -> Right (prob{startTerms = finStartTerms prob}, warns)
-                          where stdprob = standardProblem TermAlgebra Full T.empty V.emptyVariables F.emptySignature
-                                finStartTerms = onProblem finStd finDp finRel
-                                finStd sts strat trs vars sig         = mkStartTerms sts (T.definedSymbols trs) (T.constructors trs)
-                                finDp sts strat strict weak vars sig  = mkStartTerms sts (T.definedSymbols strict) (T.constructors weak)
-                                finRel sts strat strict weak vars sig = mkStartTerms sts (T.definedSymbols both) (T.constructors both)
-                                    where both = strict `T.union` weak
-                                mkStartTerms TermAlgebra _ _ = TermAlgebra
-                                mkStartTerms (BasicTerms _ _) d c = BasicTerms d c 
+    where stdprob = standardProblem TermAlgebra Full T.empty V.emptyVariables F.emptySignature
+          finStartTerms = onProblem finStd finDp finRel
+          finStd sts strat trs vars sig         = mkStartTerms sts (T.definedSymbols trs) (T.constructors trs)
+          finDp sts strat strict weak vars sig  = mkStartTerms sts (T.definedSymbols strict) (T.constructors weak)
+          finRel sts strat strict weak vars sig = mkStartTerms sts (T.definedSymbols both) (T.constructors both)
+              where both = strict `T.union` weak
+          mkStartTerms TermAlgebra _ _ = TermAlgebra
+          mkStartTerms (BasicTerms _ _) d c = BasicTerms d c 
 
 parseProblem :: TPDBParser Problem
 parseProblem = speclist >> getState

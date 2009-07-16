@@ -23,10 +23,12 @@ library
                     Termlib.Precedence
                     Termlib.ArgumentFiltering
                     Termlib.Problem
-                    Termlib.Problem.Parser
+                    Termlib.Problem.ParseErrors
                     Termlib.Problem.XmlParser
                     Termlib.Problem.TpdbParser
+                    Termlib.Problem.Parser
+                    Termlib.Repl
 
  ghc-options:       -O2
 
- build-depends:	    base>=3.0.3.0, containers, mtl, HaXml, parsec>=3.0.0, pretty
+ build-depends:	    base>=3.0.3.0, containers, mtl, HaXml, filepath, parsec>=3.0.0, pretty
