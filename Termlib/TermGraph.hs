@@ -16,9 +16,16 @@ import qualified Termlib.Variable as Var
 import Termlib.Variable (Variable)
 import qualified Termlib.FunctionSymbol as Fun
 import Termlib.FunctionSymbol (Symbol)
+
+import Termlib.Trs (Trs)
+import qualified Termlib.Trs as Trs
+import qualified Termlib.Rule as Rule
+
 import qualified Data.Graph.Inductive.Graph as Graph
 import Data.Graph.Inductive.PatriciaTree (Gr)
 import qualified Data.GraphViz as GraphViz
+import Data.GraphViz.Attributes (Attribute(..), Shape(..))
+
 data EdgeLabel = VL Variable 
                     | FL Symbol deriving (Eq, Ord, Show)
 
@@ -61,7 +68,7 @@ isDangling g n = case label `liftM` edge n g of
 
 data TermGraph = TermGraph {root :: Node
                            , edges :: Map Node Edge
-                           } 
+                           } deriving (Eq, Ord, Show)
 
 nodes :: TermGraph -> Set Node
 nodes g = root g `Set.insert` Set.fromList [ n | e <- Map.elems $ edges g, 
@@ -71,15 +78,6 @@ nodes g = root g `Set.insert` Set.fromList [ n | e <- Map.elems $ edges g,
 data St a = St { content :: a
                , newId :: Int}
 
-getTarget :: Variable -> State (St (Map Variable Node)) Node
-getTarget v = do s <- State.get
-                 case Map.lookup v (content s) of
-                   Just n -> return n
-                   Nothing -> fresh s
-    where fresh (St m i) = do let n = mkNode (i + 1)
-                              State.put $ St (Map.insert v n m) (i+1)
-                              return n
-
 freshNode :: State (St a) Node
 freshNode = do s <- State.get
                let i = newId s
@@ -87,8 +85,16 @@ freshNode = do s <- State.get
                return $ mkNode i
 
 fromTermM :: Term -> State (St (Map Variable Node)) TermGraph
+-- identifies variables
 fromTermM (Var x) = do n <- getTarget x 
                        return $ TermGraph n (Map.singleton n $ mkVariable n x)
+    where getTarget v = do s <- State.get
+                           case Map.lookup v (content s) of
+                             Just n -> return n
+                             Nothing -> fresh s
+              where fresh (St m i) = do let n = mkNode (i + 1)
+                                        State.put $ St (Map.insert v n m) (i+1)
+                                        return n
 
 fromTermM (Fun f ts) = do n <- freshNode
                           gts <- mapM fromTermM ts
@@ -163,6 +169,10 @@ newtype TGS = TGS {rules :: [TermGraphRule]}
 
 type Match = Map Variable Node
 
+fromTrs :: Trs -> TGS
+fromTrs trs = TGS [ TGR (fromTerm $ Rule.lhs r) (fromTerm $ Rule.rhs r) 
+                    | r <- Trs.rules trs]
+
 match :: TermGraph -> (TermGraph, Node) -> Maybe Match
 match pattern (graph,node) = do redex <- subgraphAt graph node
                                 matchRoot Map.empty (redex,pattern)
@@ -205,9 +215,8 @@ freshId tg = 1 + foldl max 0 [nodeId n | n <- Set.toList $ nodes tg]
 replace :: (TermGraph, Match) ->  (TermGraph, Node) -> TermGraph
 replace (new, match) (tg, node) = garbageCollect $ tg {edges = Map.delete node (edges tg) `Map.union` edges'}
     where root'     = fromMaybe (error "TermGraph.replace") $ Map.lookup (root new) m 
-
           (edges',(St m _)) = State.runState wireNew (St (Map.singleton (root new) node) (freshId tg))
-                    
+
           wireNew  = foldM 
                      (\ es (n,e) -> 
                           case label e of
@@ -281,18 +290,24 @@ innermostRewriteStep tgs g = step tgs (innermost tgs) $ nfNormalize tgs g
 data GNodeLabel = N
                 | VN String
                 | FN String
-                | Rt
 
 type GEdgeLabel = ()
 
-toGraph :: TermGraph -> Gr GNodeLabel GEdgeLabel
-toGraph tg = Graph.mkGraph ns es
+toGraph :: Signature -> TermGraph -> Gr GNodeLabel GEdgeLabel
+toGraph sig tg = Graph.mkGraph ns es
     where ns = [ (nodeId n , N) | n <-  Map.keys $ edges tg]
-          es = concat [ mke i (nodeId $ target e) : [mke (nodeId s) i  | s <- sources e]
-                        | (i,e) <- zip [j+1..] (Map.elems $ edges tg)]
+               ++ [(i, mkl $ label e) | (i,e) <- indexedEdges]
+          es = concat [ mke i (nodeId $ target e) : [mke (nodeId s) i  | s <- sources e] 
+                        | (i,e) <- indexedEdges ]
 
+          mke (VL l) = VN $ show l
+          mke (FL f) = FN $ symbolName f sig
           mke from to = (from,to,())
-          j = freshId tg
+          indexedEdges = [(freshId tg)+1..] (Map.elems $ edges tg)
 
 toDot :: TermGraph -> GraphViz.DotGraph
-toDot tg = GraphViz.graphToDot (toGraph tg) [] (const []) (const [])
+toDot tg = GraphViz.graphToDot (toGraph tg) [] nattrs eattrs
+    where nattrs (_,N) = [Shape Circle]
+          nattrs (_,VL l) = [Shape Circle, Label l] 
+          nattrs (_,FL l) = [Shape BoxShape, Label l] 
+          eattrs _ = []
