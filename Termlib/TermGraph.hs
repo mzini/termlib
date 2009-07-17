@@ -5,6 +5,7 @@ import Data.Set(Set)
 import qualified Data.Map as Map
 import Data.Map(Map)
 import qualified Data.List as List
+import Data.List ((\\))
 import Data.Maybe(fromMaybe)
 import qualified Control.Monad.State.Lazy as State
 import Control.Monad.State.Lazy (State)
@@ -24,7 +25,7 @@ import qualified Termlib.Rule as Rule
 import qualified Data.Graph.Inductive.Graph as Graph
 import Data.Graph.Inductive.PatriciaTree (Gr)
 import qualified Data.GraphViz as GraphViz
-import Data.GraphViz.Attributes (Attribute(..), Shape(..))
+import Data.GraphViz.Attributes (Attribute(..), ShapeType(..))
 
 data EdgeLabel = VL Variable 
                     | FL Symbol deriving (Eq, Ord, Show)
@@ -246,7 +247,7 @@ step tgs strat tg =
 
 termEq :: TermGraph -> Node -> Node -> Bool
 -- Pointer equality
-termEq g n1 n2 = fromMaybe (error $ "TermGraph.termEq" ++ show n1 ++ show n2) comp
+termEq g n1 n2 = fromMaybe (error $ "TermGraph.termEq " ++ show n1 ++ show n2) comp
     where comp = do e1 <- edge n1 g
                     e2 <- edge n2 g
                     return $ label e1 == label e2 && sources e1 == sources e2
@@ -264,22 +265,21 @@ rename tg node newNode = TermGraph (maybeReplace $ root tg) edges'
 
 
 nfNormalize :: TGS -> TermGraph -> TermGraph
-nfNormalize tgs g = step g
-    where step g | prs == [] = g 
-                 | otherwise = step $ foldl mergeNodes g prs 
+nfNormalize tgs tg = step tg $ Set.toList $ nfNodes $ root tg
+    where step g nfs | prs == [] = g 
+                     | otherwise = step (foldl mergeNodes g prs) (nfs \\ [ n | (n,_) <- prs])
               where prs = [ (n1, n2) | 
                             n1 <- nfs, 
                             n2 <- nfs, 
                             n1 /= n2, 
                             termEq g n1 n2]
                     mergeNodes g' = uncurry $ rename g'
-          nfs = Set.toList $ nfNodes $ root g
-          nfNodes n = case subgraphAt g n of 
+          nfNodes n = case subgraphAt tg n of 
                         Just sg -> if isRedex tgs sg 
-                                   then Set.unions $ map nfNodes $ 
-                                        Set.elems (fromMaybe (error "TermGraph.nfNormalize.children") $
-                                                   children g n)
-                                   else nodes sg
+                                  then Set.unions $ map nfNodes $ 
+                                       Set.elems (fromMaybe (error "TermGraph.nfNormalize.children") $
+                                                  children tg n)
+                                  else nodes sg
                         Nothing -> error $ "TermGraph.nfNormalize.nfNodes" ++ show n
                              
 
@@ -291,23 +291,24 @@ data GNodeLabel = N
                 | VN String
                 | FN String
 
-type GEdgeLabel = ()
+type GEdgeLabel = Maybe Int
 
-toGraph :: Signature -> TermGraph -> Gr GNodeLabel GEdgeLabel
+toGraph :: Fun.Signature -> TermGraph -> Gr GNodeLabel GEdgeLabel
 toGraph sig tg = Graph.mkGraph ns es
     where ns = [ (nodeId n , N) | n <-  Map.keys $ edges tg]
                ++ [(i, mkl $ label e) | (i,e) <- indexedEdges]
-          es = concat [ mke i (nodeId $ target e) : [mke (nodeId s) i  | s <- sources e] 
+          es = concat [ mke (nodeId $ target e) i Nothing : [mke i (nodeId s) (Just j) | (s,j) <- zip (sources e) [1..]] 
                         | (i,e) <- indexedEdges ]
 
-          mke (VL l) = VN $ show l
-          mke (FL f) = FN $ symbolName f sig
-          mke from to = (from,to,())
-          indexedEdges = [(freshId tg)+1..] (Map.elems $ edges tg)
+          mkl (VL l) = VN $ show l
+          mkl (FL f) = FN $ Fun.symbolName sig f
+          mke from to l = (from,to,l)
+          indexedEdges = zip [(1 + freshId tg) ..] (Map.elems $ edges tg)
 
-toDot :: TermGraph -> GraphViz.DotGraph
-toDot tg = GraphViz.graphToDot (toGraph tg) [] nattrs eattrs
+toDot :: Fun.Signature -> TermGraph -> GraphViz.DotGraph
+toDot sig tg = GraphViz.graphToDot (toGraph sig tg) [] nattrs eattrs
     where nattrs (_,N) = [Shape Circle]
-          nattrs (_,VL l) = [Shape Circle, Label l] 
-          nattrs (_,FL l) = [Shape BoxShape, Label l] 
-          eattrs _ = []
+          nattrs (_,VN l) = [Shape Circle, Label l] 
+          nattrs (_,FN l) = [Shape BoxShape, Label l] 
+          eattrs (_,_,Nothing) = []
+          eattrs (_,_,Just i)  = [Label $ show i]
