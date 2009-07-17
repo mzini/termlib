@@ -42,12 +42,6 @@ import qualified Data.Maybe as Maybe
 
 data Rule = Rule {lhs :: Term, rhs :: Term} deriving Show
 
-instance PrettyPrintable [Rule] where
-  pprint rs = undefined
-
-instance PrettyPrintable Rule where
-  pprint r = undefined
-
 invert :: Rule -> Rule
 invert (Rule l r) = Rule r l
 
