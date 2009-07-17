@@ -3,7 +3,7 @@ where
 
 import qualified Data.List as List
 import qualified Data.Set as Set
-import Data.Set (Set, (\\))
+import Data.Set (Set, (\\), isSubsetOf)
 import qualified Control.Monad.State.Lazy as State
 
 import qualified Termlib.Rule as R
@@ -107,8 +107,15 @@ isDuplicating trs = any R.isDuplicating $ rules trs
 
 -- leftLinear = allrules R.leftLinear
 
--- rightLinear = allrules R.rightLinear
+isRightLinear :: Trs -> Bool
+isRightLinear = allrules R.isRightLinear
 
 -- leftGround = allrules R.leftGround
 
 -- rightGround = allrules R.rightGround
+
+isConstructor :: Trs -> Bool
+isConstructor trs = allrules (cb . R.lhs) trs
+    where cb (T.Fun f ts) = all (\ ti -> T.functionSymbols ti `isSubsetOf` constrs) ts
+          cb _          = False
+          constrs = constructors trs
