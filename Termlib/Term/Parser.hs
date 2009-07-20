@@ -13,7 +13,6 @@ import Control.Monad (liftM)
 import Control.Monad.Error
 import Control.Monad.Writer.Lazy
 import Text.Parsec hiding (ParseError)
-import Text.Parsec.Char (spaces)
 
 termFromString :: Signature -> String -> Either ParseError (Term,[ParseWarning])
 termFromString sig input = case runWriter $ runErrorT $ runParserT term (sig,Map.empty,0) input input of 
@@ -45,9 +44,11 @@ sym = do name <- ident
 colon = char ','
 ident = many1 $ noneOf " \n\r\t()\",|-= "
 
-whitespaced p = do spaces
+whitespace = space <|> newline <|> tab <|> char '\r'
+
+whitespaced p = do whitespace
                    f <- p
-                   spaces
+                   whitespace
                    return f
 
 parens p = do char '('
