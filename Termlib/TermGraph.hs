@@ -25,7 +25,7 @@ import qualified Termlib.Rule as Rule
 import qualified Data.Graph.Inductive.Graph as Graph
 import Data.Graph.Inductive.PatriciaTree (Gr)
 import qualified Data.GraphViz as GraphViz
-import Data.GraphViz.Attributes (Attribute(..), ShapeType(..))
+import Data.GraphViz.Attributes (Attribute(..), Shape(..), Label(..))
 
 data EdgeLabel = VL Variable 
                     | FL Symbol deriving (Eq, Ord, Show)
@@ -308,7 +308,7 @@ toGraph sig tg = Graph.mkGraph ns es
 toDot :: Fun.Signature -> TermGraph -> GraphViz.DotGraph
 toDot sig tg = GraphViz.graphToDot (toGraph sig tg) [] nattrs eattrs
     where nattrs (_,N) = [Shape Circle]
-          nattrs (_,VN l) = [Shape Circle, Label l] 
-          nattrs (_,FN l) = [Shape BoxShape, Label l] 
+          nattrs (_,VN l) = [Shape Circle, Label $ StrLabel l] 
+          nattrs (_,FN l) = [Shape BoxShape, Label $ StrLabel l] 
           eattrs (_,_,Nothing) = []
-          eattrs (_,_,Just i)  = [Label $ show i]
+          eattrs (_,_,Just i)  = [Label $ StrLabel $ show i]
