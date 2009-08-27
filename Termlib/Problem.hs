@@ -129,6 +129,6 @@ prettyPrintRelation :: Problem -> Doc
 prettyPrintRelation p = 
     case relation p of 
       Standard trs         -> ppt "Rules" trs
-      DP strict weak       -> ppt "Dependency Pairs" strict $+$ ppt "Weak Rules" weak
+      DP strict weak       -> ppt "Strict Rules" strict $+$ ppt "Weak Rules" weak
       Relative strict weak -> ppt "Strict Rules" strict $+$ ppt "Weak Rules" weak
     where ppt n trs = hang (text $ n ++ ":") 2 $ pprint (trs, signature p, variables p)
