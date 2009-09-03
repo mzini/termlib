@@ -48,6 +48,10 @@ invert (Rule l r) = Rule r l
 fromPair :: (Term, Term) -> Rule
 fromPair (l,r) = Rule l r
 
+
+toPair :: Rule -> (Term, Term)
+toPair (Rule l r) = (l,r)
+
 variables :: Rule -> Set Variable
 variables (Rule l r) = T.variables l `Set.union` T.variables r
 

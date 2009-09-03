@@ -3,7 +3,7 @@ where
 
 import qualified Data.List as List
 import qualified Data.Set as Set
-import Data.Set (Set, (\\), isSubsetOf)
+import Data.Set (Set, isSubsetOf)
 import qualified Control.Monad.State.Lazy as State
 
 import qualified Termlib.Rule as R
@@ -24,6 +24,9 @@ data Trs = Trs {rules :: Rules}
 empty :: Trs
 empty = Trs [] 
 
+singleton :: Rule -> Trs
+singleton r = Trs [r]
+
 invert :: Trs -> Trs
 invert = Trs . map R.invert . rules
 
@@ -35,6 +38,9 @@ rhss = map R.rhs . rules
 
 union :: Trs -> Trs -> Trs
 (Trs trs1) `union` (Trs trs2) = Trs $ trs1 ++ trs2
+
+(\\) :: Trs -> Trs -> Trs
+(Trs trs1) \\ (Trs trs2) = Trs $ trs1 List.\\ trs2
 
 fromRules :: Rules -> Trs
 fromRules = Trs
@@ -73,7 +79,7 @@ definedSymbols trs = foldlRules f Set.empty trs
                              Right r -> Set.insert r s
 
 constructors :: Trs -> Set F.Symbol
-constructors trs =  functionSymbols trs \\ definedSymbols trs
+constructors trs =  functionSymbols trs Set.\\ definedSymbols trs
 
 
 -- rewrites s t trs = any (R.rewrites s t) $ rules trs

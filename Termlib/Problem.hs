@@ -3,7 +3,6 @@ module Termlib.Problem
   , StartTerms(..)
   , Relation(..)
   , Problem(..)
-  , problem
   , standardProblem
   , dpProblem
   , relativeProblem
@@ -45,9 +44,6 @@ data Problem = Problem {startTerms :: StartTerms
                        , variables :: Variables
                        , signature :: Signature} 
                deriving (Eq, Show)
-
-problem :: StartTerms -> Strategy -> Relation -> Variables -> Signature -> Problem
-problem = Problem 
 
 standardProblem :: StartTerms -> Strategy -> Trs -> Variables -> Signature -> Problem
 standardProblem t s r = Problem t s (Standard r)
@@ -122,7 +118,6 @@ measureName p = ms (strategy p) <+> mn (relation p) <+> mt (startTerms p) <> tex
           ms Full      = empty
           mt (BasicTerms _ _) = text "runtime"
           mt TermAlgebra    = text "derivational"
-
 
 
 prettyPrintRelation :: Problem -> Doc
