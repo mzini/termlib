@@ -18,13 +18,13 @@ where
 
 import Data.Set (Set)
 
-import qualified Termlib.Trs as Trs 
+import qualified Termlib.Trs as Trs
 import Termlib.Trs.PrettyPrint
 import Termlib.Trs (Trs) 
 import Termlib.Variable (Variables)
 import qualified Termlib.FunctionSymbol as F
 import Termlib.FunctionSymbol (Signature, Symbol)
-import Termlib.Utils 
+import Termlib.Utils
 import Text.PrettyPrint.HughesPJ
 
 data Strategy = Innermost

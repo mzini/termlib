@@ -131,3 +131,6 @@ isConstructor trs = allrules (cb . R.lhs) trs
     where cb (T.Fun f ts) = all (\ ti -> T.functionSymbols ti `isSubsetOf` constrs) ts
           cb _          = False
           constrs = constructors trs
+
+isOverlapping :: Trs -> Bool
+isOverlapping (Trs rs) = R.isAnyOverlapping rs rs

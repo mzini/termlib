@@ -65,6 +65,25 @@ immediateSubterms :: Term -> [Term]
 immediateSubterms (Var _) = []
 immediateSubterms (Fun _ xs) = xs
 
+nonVariableSubterms :: Term -> [Term]
+nonVariableSubterms = genSubterms False
+
+properNonVariableSubterms :: Term -> [Term]
+properNonVariableSubterms = genProperSubterms False
+
+subterms :: Term -> [Term]
+subterms = genSubterms True
+
+properSubterms :: Term -> [Term]
+properSubterms = genProperSubterms True
+
+genSubterms :: Bool -> Term -> [Term]
+genSubterms includeVars t@(Var _) = if includeVars then [t] else []
+genSubterms iv t@(Fun _ ts)       = t : (concat $ map (genSubterms iv) ts)
+
+genProperSubterms :: Bool -> Term -> [Term]
+genProperSubterms iv = concat . map (genSubterms iv) . immediateSubterms
+
 isProperSubtermOf :: Term -> Term -> Bool
 s `isProperSubtermOf` t = any (s `isSubtermOf`) $ immediateSubterms t
 
