@@ -12,7 +12,8 @@ module Termlib.Problem
   , withDpProblem
   , withRelativeProblem
   , measureName 
-  , prettyPrintRelation)
+  , prettyPrintRelation
+  , wellFormed)
 where
 
 import Data.Set (Set)
@@ -44,6 +45,13 @@ data Problem = Problem {startTerms :: StartTerms
                        , variables :: Variables
                        , signature :: Signature} 
                deriving (Eq, Show)
+
+
+wellFormed :: Problem -> Bool
+wellFormed p = case relation p of 
+                 DP s w       -> Trs.wellFormed s && Trs.wellFormed w
+                 Relative s w -> Trs.wellFormed s && Trs.wellFormed w
+                 Standard s   -> Trs.wellFormed s
 
 standardProblem :: StartTerms -> Strategy -> Trs -> Variables -> Signature -> Problem
 standardProblem t s r = Problem t s (Standard r)

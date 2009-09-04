@@ -42,6 +42,12 @@ union :: Trs -> Trs -> Trs
 (\\) :: Trs -> Trs -> Trs
 (Trs trs1) \\ (Trs trs2) = Trs $ trs1 List.\\ trs2
 
+wellFormed :: Trs -> Bool
+wellFormed = allrules wf
+    where wf r = not (T.isVariable lhs) && (T.variables rhs `Set.isSubsetOf` T.variables lhs)
+              where lhs = R.lhs r
+                    rhs = R.rhs r
+
 fromRules :: Rules -> Trs
 fromRules = Trs
 
