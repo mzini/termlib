@@ -88,6 +88,7 @@ constructors :: Trs -> Set F.Symbol
 constructors trs =  functionSymbols trs Set.\\ definedSymbols trs
 
 
+
 -- rewrites s t trs = any (R.rewrites s t) $ rules trs
 
 -- topRewrites s t trs = any (R.topRewrites s t) $ rules trs
@@ -134,3 +135,14 @@ isConstructor trs = allrules (cb . R.lhs) trs
 
 isOverlapping :: Trs -> Bool
 isOverlapping (Trs rs) = R.isAnyOverlapping rs rs
+
+
+isNestedRecursive :: Trs -> Bool
+isNestedRecursive (Trs rs) = any nr rs
+    where nr (R.Rule l r) = any hasNestedRoot [t | t <- T.subterms r, T.root t == T.root l]
+          
+          hasNestedRoot (T.Var _)    = False
+          hasNestedRoot (T.Fun f ts) = f `Set.member` Set.unions [T.functionSymbols ti | ti <- ts]
+          
+          
+          
