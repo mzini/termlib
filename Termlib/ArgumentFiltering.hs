@@ -6,7 +6,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Text.PrettyPrint.HughesPJ hiding (empty)
 import qualified Text.PrettyPrint.HughesPJ as PP
-import Termlib.FunctionSymbol (Signature, Symbol, emptySignature, arity, maybeFresh, defaultAttribs, symbolName)
+import Termlib.FunctionSymbol (Signature, Symbol, emptySignature, arity, maybeFresh, defaultAttribs, symbolName, SignatureMonad)
 import Termlib.Utils (PrettyPrintable(..))
 import Termlib.Trs (fromRules, Trs, rules)
 import Termlib.Signature (runSignature,  getSignature)
@@ -39,8 +39,8 @@ instance PrettyPrintable ArgumentFiltering where
 alter :: (Maybe Filtering -> Maybe Filtering) -> Symbol -> ArgumentFiltering -> ArgumentFiltering
 alter f s (AF (sig, m)) = AF (sig, Map.alter f s m)
 
-apply :: Trs -> ArgumentFiltering -> (Trs, Signature)
-apply trs af = runSignature (fromRules `liftM` mapM filterRule (rules trs)) emptySignature
+apply :: Trs -> ArgumentFiltering -> SignatureMonad Trs
+apply trs af = fromRules `liftM` mapM filterRule (rules trs)
     where filterRule (Rule lhs rhs) = liftM2 Rule (filter lhs) (filter rhs)
           filter (Var x)    = return $ Var x
           filter (Fun f ts) = case filtering f af of 

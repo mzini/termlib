@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances #-}
+{-# Language GeneralizedNewtypeDeriving, FlexibleInstances #-}
 
 module Termlib.Signature 
   ( Signature
