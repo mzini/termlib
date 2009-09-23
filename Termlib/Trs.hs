@@ -145,4 +145,6 @@ isNestedRecursive (Trs rs) = any nr rs
           hasNestedRoot (T.Fun f ts) = f `Set.member` Set.unions [T.functionSymbols ti | ti <- ts]
           
           
+isGround :: Trs -> Bool
+isGround trs = all (\ (R.Rule l r) -> T.isGround l && T.isGround r) $ rules trs
           
