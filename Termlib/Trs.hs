@@ -108,7 +108,8 @@ isDuplicating trs = any R.isDuplicating $ rules trs
 
 -- linear = allrules R.linear
 
--- ground = allrules R.ground
+isGround :: Trs -> Bool
+isGround = allrules R.isGround
 
 -- leftFlat = allrules R.leftFlat
 
@@ -118,7 +119,8 @@ isDuplicating trs = any R.isDuplicating $ rules trs
 
 -- rightShallow = allrules R.rightShallow
 
--- leftLinear = allrules R.leftLinear
+isLeftLinear :: Trs -> Bool
+isLeftLinear = allrules R.isLeftLinear
 
 isRightLinear :: Trs -> Bool
 isRightLinear = allrules R.isRightLinear
@@ -143,8 +145,3 @@ isNestedRecursive (Trs rs) = any nr rs
           
           hasNestedRoot (T.Var _)    = False
           hasNestedRoot (T.Fun f ts) = f `Set.member` Set.unions [T.functionSymbols ti | ti <- ts]
-          
-          
-isGround :: Trs -> Bool
-isGround trs = all (\ (R.Rule l r) -> T.isGround l && T.isGround r) $ rules trs
-          
