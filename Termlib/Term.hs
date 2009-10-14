@@ -55,7 +55,7 @@ isShallow = maybe True (<= 1) . varDepth
 isLinear :: Term -> Bool
 isLinear t = fst $ State.runState (l t) Set.empty 
   where l (Var x)    = do s <- State.get
-                          if x `Set.notMember` s 
+                          if x `Set.member` s 
                            then return False
                            else State.put (Set.insert x s) >> return True
         l (Fun _ ts) = foldM (\ b t_i -> (b &&) `liftM` l t_i) True ts 
