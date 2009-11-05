@@ -22,10 +22,10 @@ import Termlib.Trs (Trs)
 import qualified Termlib.Trs as Trs
 import qualified Termlib.Rule as Rule
 
-import qualified Data.Graph.Inductive.Graph as Graph
-import Data.Graph.Inductive.PatriciaTree (Gr)
-import qualified Data.GraphViz as GraphViz
-import Data.GraphViz.Attributes (Attribute(..), Shape(..), Label(..))
+-- import qualified Data.Graph.Inductive.Graph as Graph
+-- import Data.Graph.Inductive.PatriciaTree (Gr)
+-- import qualified Data.GraphViz as GraphViz
+-- import Data.GraphViz.Attributes (Attribute(..), Shape(..), Label(..))
 
 data EdgeLabel = VL Variable 
                     | FL Symbol deriving (Eq, Ord, Show)
@@ -287,28 +287,28 @@ innermostRewriteStep :: TGS -> TermGraph -> Maybe TermGraph
 innermostRewriteStep tgs g = step tgs (innermost tgs) $ nfNormalize tgs g
 
 
-data GNodeLabel = N
-                | VN String
-                | FN String
+-- data GNodeLabel = N
+--                 | VN String
+--                 | FN String
 
-type GEdgeLabel = Maybe Int
+-- type GEdgeLabel = Maybe Int
 
-toGraph :: Fun.Signature -> TermGraph -> Gr GNodeLabel GEdgeLabel
-toGraph sig tg = Graph.mkGraph ns es
-    where ns = [ (nodeId n , N) | n <-  Map.keys $ edges tg]
-               ++ [(i, mkl $ label e) | (i,e) <- indexedEdges]
-          es = concat [ mke (nodeId $ target e) i Nothing : [mke i (nodeId s) (Just j) | (s,j) <- zip (sources e) [1..]] 
-                        | (i,e) <- indexedEdges ]
+-- toGraph :: Fun.Signature -> TermGraph -> Gr GNodeLabel GEdgeLabel
+-- toGraph sig tg = Graph.mkGraph ns es
+--     where ns = [ (nodeId n , N) | n <-  Map.keys $ edges tg]
+--                ++ [(i, mkl $ label e) | (i,e) <- indexedEdges]
+--           es = concat [ mke (nodeId $ target e) i Nothing : [mke i (nodeId s) (Just j) | (s,j) <- zip (sources e) [1..]] 
+--                         | (i,e) <- indexedEdges ]
 
-          mkl (VL l) = VN $ show l
-          mkl (FL f) = FN $ Fun.symbolName sig f
-          mke from to l = (from,to,l)
-          indexedEdges = zip [(1 + freshId tg) ..] (Map.elems $ edges tg)
+--           mkl (VL l) = VN $ show l
+--           mkl (FL f) = FN $ Fun.symbolName sig f
+--           mke from to l = (from,to,l)
+--           indexedEdges = zip [(1 + freshId tg) ..] (Map.elems $ edges tg)
 
-toDot :: Fun.Signature -> TermGraph -> GraphViz.DotGraph
-toDot sig tg = GraphViz.graphToDot (toGraph sig tg) [] nattrs eattrs
-    where nattrs (_,N) = [Shape Circle]
-          nattrs (_,VN l) = [Shape Circle, Label $ StrLabel l] 
-          nattrs (_,FN l) = [Shape BoxShape, Label $ StrLabel l] 
-          eattrs (_,_,Nothing) = []
-          eattrs (_,_,Just i)  = [Label $ StrLabel $ show i]
+-- toDot :: Fun.Signature -> TermGraph -> GraphViz.DotGraph
+-- toDot sig tg = GraphViz.graphToDot (toGraph sig tg) [] nattrs eattrs
+--     where nattrs (_,N) = [Shape Circle]
+--           nattrs (_,VN l) = [Shape Circle, Label $ StrLabel l] 
+--           nattrs (_,FN l) = [Shape BoxShape, Label $ StrLabel l] 
+--           eattrs (_,_,Nothing) = []
+--           eattrs (_,_,Just i)  = [Label $ StrLabel $ show i]
