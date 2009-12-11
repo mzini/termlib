@@ -10,6 +10,7 @@ module Termlib.Substitution
    subsumes,
    match,
    isUnifiable,
+   isRenamedUnifiable,
    encompasses,
    variant,
    Substitution
@@ -52,6 +53,13 @@ match _ _ _ = Nothing
 
 isUnifiable :: T.Term -> T.Term -> Bool
 isUnifiable s t = State.evalState unify ([(s, t)], empty)
+
+isRenamedUnifiable :: T.Term -> T.Term -> Bool
+isRenamedUnifiable s t = isUnifiable s' t'
+  where (s', sigma) = T.canonise s Map.empty
+        sigmamax    = V.canonical $ Map.fold (\ (V.Canon i) n -> max i n) 0 sigma
+        sigma'      = Map.fromList [(sigmamax, sigmamax)]
+        (t', _)     = T.canonise t sigma'
 
 unify :: State.State ([(T.Term, T.Term)], Substitution) Bool
 unify = do (eqs, sub) <- State.get

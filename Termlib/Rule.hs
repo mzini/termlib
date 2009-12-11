@@ -163,7 +163,7 @@ isRightGround :: Rule -> Bool
 isRightGround = T.isGround . rhs
 
 isOverlapping :: Rule -> Rule -> Bool
-isOverlapping r1 r2 = any (S.isUnifiable l2) (appropriateSubterms l1) || any (S.isUnifiable l1) (appropriateSubterms l2)
+isOverlapping r1 r2 = any (S.isRenamedUnifiable l2) (appropriateSubterms l1) || any (S.isRenamedUnifiable l1) (appropriateSubterms l2)
   where l1 = lhs r1
         l2 = lhs r2
         appropriateSubterms = if r1 == r2 then T.properNonVariableSubterms else T.nonVariableSubterms
