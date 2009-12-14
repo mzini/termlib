@@ -219,6 +219,8 @@ ident = many1 (try innocentmin <|> try innocenteq <|> noneOf " \n\r\t()\",|-=")
                                notFollowedBy $ char '='
                                return '='
 
+laxident = many1 (noneOf " \n\r\t()\",|")
+
 anylist = (try anylist1 <|> try anylist2 <|> try anylist3 <|> try anylist4 <|> anylist5) >> return ()
 
 anylist1 = do char '('
@@ -233,7 +235,7 @@ anylist2 = do char ','
               anylist
               return ()
 
-anylist3 = do ident
+anylist3 = do laxident
               whitespaces
               anylist
               return ()
