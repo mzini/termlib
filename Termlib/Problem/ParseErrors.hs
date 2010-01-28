@@ -1,3 +1,5 @@
+{-# LANGUAGE ExistentialQuantification #-}
+
 module Termlib.Problem.ParseErrors
     ( ParseError(..)
     , ParseWarning(..)
@@ -10,8 +12,8 @@ import Text.PrettyPrint.HughesPJ
 import Text.XML.HaXml
 import qualified Text.ParserCombinators.Parsec as Parsec 
 
-data ParseError = MalformedTerm Content
-                | MalformedRule Content
+data ParseError = forall i. MalformedTerm (Content i)
+                | forall i. MalformedRule (Content i)
                 | UnknownError String
                 | UnsupportedStrategy String
                 | SymbolNotInSignature String

@@ -1,6 +1,7 @@
-module Termlib.Utils where 
+module Termlib.Utils where
 
 import Text.PrettyPrint.HughesPJ
+import Text.XML.HaXml.Types
 
 class Enumerateable a where
   enum :: a -> Int
@@ -8,10 +9,13 @@ class Enumerateable a where
 
 
 class PrettyPrintable a where
-    pprint :: a -> Doc 
+    pprint :: a -> Doc
 
 instance PrettyPrintable Doc where
     pprint = id
+
+-- class CpfPrintable a where
+--    cpfprint :: a -> Element
 
 newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
 
