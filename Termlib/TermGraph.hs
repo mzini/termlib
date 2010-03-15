@@ -305,10 +305,10 @@ innermostRewriteStep tgs g = step tgs (innermost tgs) $ nfNormalize tgs g
 --           mke from to l = (from,to,l)
 --           indexedEdges = zip [(1 + freshId tg) ..] (Map.elems $ edges tg)
 
-toDot :: Fun.Signature -> TermGraph -> GraphViz.DotGraph
-toDot sig tg = GraphViz.graphToDot (toGraph sig tg) [] nattrs eattrs
-    where nattrs (_,N) = [Shape Circle]
-          nattrs (_,VN l) = [Shape Circle, Label $ StrLabel l] 
-          nattrs (_,FN l) = [Shape BoxShape, Label $ StrLabel l] 
-          eattrs (_,_,Nothing) = []
-          eattrs (_,_,Just i)  = [Label $ StrLabel $ show i]
+-- toDot :: Fun.Signature -> TermGraph -> GraphViz.DotGraph
+-- toDot sig tg = GraphViz.graphToDot (toGraph sig tg) [] nattrs eattrs
+--     where nattrs (_,N) = [Shape Circle]
+--           nattrs (_,VN l) = [Shape Circle, Label $ StrLabel l] 
+--           nattrs (_,FN l) = [Shape BoxShape, Label $ StrLabel l] 
+--           eattrs (_,_,Nothing) = []
+--           eattrs (_,_,Just i)  = [Label $ StrLabel $ show i]
