@@ -44,3 +44,5 @@ instance PrettyPrintable (Term, Signature, Variables) where
   pprint ((Var x), _, var)      = text $ V.variableName x var
   pprint ((Fun f ts), sig, var) = pprint (f,sig)
                                 <> parens (sep $ punctuate (text ",") [pprint (t_i, sig, var) | t_i <- ts])
+
+instance PrettyPrintable Int where pprint = int
