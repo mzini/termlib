@@ -17,7 +17,8 @@ along with the Haskell Term Rewriting Library.  If not, see <http://www.gnu.org/
 module Termlib.Utils where 
 
 import Text.PrettyPrint.HughesPJ
-import Text.XML.HaXml.Types
+import qualified Control.Monad.State.Lazy as State
+import qualified Data.Map as Map
 
 class Enumerateable a where
   enum :: a -> Int
@@ -44,3 +45,28 @@ instance Monad m => Monad (MaybeT m) where
 eitherM :: Monad m => (a -> m c) -> (b -> m c) -> m (Either a b) -> m c
 eitherM ma mb me = do e <- me 
                       either ma mb  e
+
+
+type MemoAction k a b = State.State (Map.Map k a) b
+
+memo :: (Ord k) => k -> (MemoAction k a a) -> (MemoAction k a a)
+memo k  m = do s <- State.get 
+               case Map.lookup k s of
+                 Just old -> return old
+                 Nothing  -> do { new <- m;
+                                 State.modify (Map.insert k new);
+                                 return new}
+
+
+runMemoAction :: (Ord k) => MemoAction k a b -> b
+runMemoAction ma = fst $ State.runState ma Map.empty
+
+liftMemo :: (Ord k) => (k -> a) -> (k -> MemoAction k a a)
+liftMemo f k = memo k (return $ f k)
+
+
+listProduct :: [[a]] -> [[a]]
+listProduct []             = []
+listProduct [xs]           = map (\ x -> [x]) xs
+listProduct (xs:xss@(_:_)) = foldl f [] xs
+  where f a x = map (\ xs' -> x:xs') (listProduct xss) ++ a

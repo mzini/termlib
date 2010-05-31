@@ -63,7 +63,6 @@ data Problem = Problem {startTerms :: StartTerms
                        , signature :: Signature} 
                deriving (Eq, Show)
 
-
 wellFormed :: Problem -> Bool
 wellFormed p = case relation p of 
                  DP s w       -> Trs.wellFormed s && Trs.wellFormed w
