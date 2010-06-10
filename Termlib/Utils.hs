@@ -47,7 +47,7 @@ eitherM ma mb me = do e <- me
                       either ma mb  e
 
 
-type MemoAction k a b = State.State (Map.Map k a) b
+type MemoAction k a = State.State (Map.Map k a)
 
 memo :: (Ord k) => k -> (MemoAction k a a) -> (MemoAction k a a)
 memo k  m = do s <- State.get 
