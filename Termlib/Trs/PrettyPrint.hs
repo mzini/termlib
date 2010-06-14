@@ -31,17 +31,17 @@ import Control.Monad (forM)
 import Termlib.Utils
 
 
-pprintTrs :: (R.Rule -> Doc) -> Trs -> Doc
-pprintTrs ppRule trs = braces $ pprs (rules trs) 
+pprintTrs :: (a -> Doc) -> [a] -> Doc
+pprintTrs ppRule trs = braces $ pprs trs 
       where pprs []  = text ""
             pprs [r] = ppRule r
             pprs rs  = vcat $ [com <+> ppRule r | (com,r) <- zip (text " " : repeat (text ",")) rs]
 
 instance PrettyPrintable Trs where
-    pprint = pprintTrs pprint
+    pprint trs = pprintTrs pprint (rules trs)
 
 instance PrettyPrintable (Trs, Signature, Variables) where 
-    pprint (trs, sig, var) = pprintTrs (\ r -> pprint (r, sig, var)) trs
+    pprint (trs, sig, var) = pprintTrs (\ r -> pprint (r, sig, var)) (rules trs)
 
 instance PrettyPrintable (R.Rule, Signature, Variables) where
     pprint ((R.Rule l r), sig, var) = fsep [pprint (l, sig, var), text "->", pprint (r, sig, var)]
