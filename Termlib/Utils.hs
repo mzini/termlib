@@ -68,9 +68,9 @@ liftMemo f k = memo k (return $ f k)
 
 
 listProduct :: [[a]] -> [[a]]
-listProduct []             = []
-listProduct [xs]           = map (\ x -> [x]) xs
-listProduct (xs:xss@(_:_)) = foldl f [] xs
+listProduct []             = [[]]
+-- listProduct [xs]           = map (\ x -> [x]) xs
+listProduct (xs:xss) = foldl f [] xs
   where f a x = map (\ xs' -> x:xs') (listProduct xss) ++ a
 
 
