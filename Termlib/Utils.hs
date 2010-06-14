@@ -70,3 +70,7 @@ listProduct []             = []
 listProduct [xs]           = map (\ x -> [x]) xs
 listProduct (xs:xss@(_:_)) = foldl f [] xs
   where f a x = map (\ xs' -> x:xs') (listProduct xss) ++ a
+
+
+snub :: Ord a => [a] -> [a]
+snub = Set.toList . Set.fromList
