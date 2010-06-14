@@ -57,8 +57,12 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Set (Set)
 import qualified Data.Maybe as Maybe
+import Text.PrettyPrint.HughesPJ hiding (empty)
 
 data Rule = Rule {lhs :: Term, rhs :: Term} deriving Show
+
+instance PrettyPrintable Rule where
+    pprint (Rule l r) = pprint l <+> text "->" <+> pprint r
 
 invert :: Rule -> Rule
 invert (Rule l r) = Rule r l

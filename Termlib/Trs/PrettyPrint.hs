@@ -30,14 +30,21 @@ import Text.PrettyPrint.HughesPJ
 import Control.Monad (forM)
 import Termlib.Utils
 
-instance PrettyPrintable (Trs, Signature, Variables) where 
-  pprint (trs, sig, var) = braces $ pprs (rules trs) 
+
+pprintTrs :: (R.Rule -> Doc) -> Trs -> Doc
+pprintTrs ppRule trs = braces $ pprs (rules trs) 
       where pprs []  = text ""
-            pprs [r] = pprint (r, sig, var)
-            pprs rs  = vcat $ [com <+> pprint (r, sig, var) | (com,r) <- zip (text " " : repeat (text ",")) rs]
+            pprs [r] = ppRule r
+            pprs rs  = vcat $ [com <+> ppRule r | (com,r) <- zip (text " " : repeat (text ",")) rs]
+
+instance PrettyPrintable Trs where
+    pprint = pprintTrs pprint
+
+instance PrettyPrintable (Trs, Signature, Variables) where 
+    pprint (trs, sig, var) = pprintTrs (\ r -> pprint (r, sig, var)) trs
 
 instance PrettyPrintable (R.Rule, Signature, Variables) where
-  pprint ((R.Rule l r), sig, var) = fsep [pprint (l, sig, var), text "->", pprint (r, sig, var)]
+    pprint ((R.Rule l r), sig, var) = fsep [pprint (l, sig, var), text "->", pprint (r, sig, var)]
 
 
 instance PrettyPrintable (Term, Signature, Variables) where

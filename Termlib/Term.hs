@@ -18,15 +18,17 @@ along with the Haskell Term Rewriting Library.  If not, see <http://www.gnu.org/
 module Termlib.Term
 where
 
+import Data.Set (Set)
+import qualified Data.List as List
+import qualified Data.Set as Set
+import Control.Monad.State.Lazy as State
+import Text.PrettyPrint.HughesPJ hiding (empty)
+
 import qualified Termlib.Variable as V
 import Termlib.Variable (Variable(..), canonical)
 import qualified Termlib.FunctionSymbol as F
 import Termlib.FunctionSymbol (Symbol)
 import Termlib.Utils
-import qualified Data.List as List
-import qualified Data.Set as Set
-import Data.Set (Set)
-import Control.Monad.State.Lazy as State
 
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
@@ -34,6 +36,11 @@ import qualified Data.Maybe as Maybe
 data Term = Var Variable | Fun F.Symbol [Term]
   deriving (Eq, Ord, Show)
 
+
+instance PrettyPrintable Term where
+    pprint (Var x) = text "x_" <> text (show x)
+    pprint (Fun f ts) = text (show f) <> parens ppts
+        where ppts = hcat $ punctuate (text ",") [pprint ti | ti <- ts]
 
 variables :: Term -> Set Variable
 variables (Var v) = Set.singleton v
