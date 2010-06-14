@@ -19,6 +19,8 @@ module Termlib.Utils where
 import Text.PrettyPrint.HughesPJ
 import qualified Control.Monad.State.Lazy as State
 import qualified Data.Map as Map
+import qualified Data.Set as Set
+
 
 class Enumerateable a where
   enum :: a -> Int
@@ -74,3 +76,8 @@ listProduct (xs:xss@(_:_)) = foldl f [] xs
 
 snub :: Ord a => [a] -> [a]
 snub = Set.toList . Set.fromList
+
+
+ifM :: Monad m => m Bool -> m a -> m a -> m a
+ifM b t e = do g <- b
+               if g then t else e
