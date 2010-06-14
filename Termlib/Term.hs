@@ -38,8 +38,9 @@ data Term = Var Variable | Fun F.Symbol [Term]
 
 
 instance PrettyPrintable Term where
-    pprint (Var x) = text "x_" <> text (show x)
-    pprint (Fun f ts) = text (show f) <> parens ppts
+    pprint (Var (V.Canon x))     = text "v_" <> text (show x)
+    pprint (Var (V.User x))      = text "x_" <> text (show x)
+    pprint (Fun f ts)            = text (show $ enum f) <> parens ppts
         where ppts = hcat $ punctuate (text ",") [pprint ti | ti <- ts]
 
 variables :: Term -> Set Variable
