@@ -68,6 +68,9 @@ wellFormed = allrules wf
 fromRules :: Rules -> Trs
 fromRules = Trs
 
+toRules :: Trs -> Rules
+toRules (Trs rs) = rs
+
 isEmpty :: Trs -> Bool
 isEmpty trs = rules trs == []
 
