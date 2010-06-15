@@ -81,3 +81,6 @@ snub = Set.toList . Set.fromList
 ifM :: Monad m => m Bool -> m a -> m a -> m a
 ifM b t e = do g <- b
                if g then t else e
+
+($++$) :: Doc -> Doc -> Doc
+a $++$ b = a $+$ text "" $+$ b
