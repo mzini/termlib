@@ -116,6 +116,7 @@ parseStrategy doc = case verbatim $ tag "problem" /> tag "strategy" /> txt $ doc
                       "FULL" -> return Full
                       a -> throwError $ UnsupportedStrategy a
 
+-- MA:TODO: verify
 parseStartTerms :: Set F.Symbol -> Set F.Symbol -> Content i -> Parser StartTerms
 parseStartTerms defs constrs doc = case tag "problem" /> tag "startterm" /> txt $ doc of
                                      [] -> return TermAlgebra

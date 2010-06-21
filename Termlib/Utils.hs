@@ -84,3 +84,7 @@ ifM b t e = do g <- b
 
 ($++$) :: Doc -> Doc -> Doc
 a $++$ b = a $+$ text "" $+$ b
+
+
+paragraph :: String -> Doc
+paragraph s = fsep [text w | w <- words s]
