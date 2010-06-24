@@ -25,6 +25,7 @@ module Termlib.Problem
   , relativeProblem
   , onProblem
   , strictTrs
+  , weakTrs
   , withStandardProblem
   , withDpProblem
   , withRelativeProblem
@@ -130,6 +131,12 @@ strictTrs prob = case relation prob of
                    Standard trs   -> trs
                    DP trs _       -> trs
                    Relative trs _ -> trs
+
+weakTrs :: Problem -> Trs
+weakTrs prob = case relation prob of
+                   Standard _      -> Trs.empty
+                   DP       _  trs -> trs
+                   Relative _  trs -> trs
 
 
 
