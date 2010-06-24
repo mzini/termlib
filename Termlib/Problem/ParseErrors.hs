@@ -36,12 +36,13 @@ data ParseError = forall i. MalformedTerm (Content i)
                 | ParsecParseError Parsec.ParseError
                 | UnknownFileError String
                 | ProblemNotFoundError String
-
+                | UnsupportedRewritingError String
 
 instance Error ParseError where
   strMsg = UnknownError
 
 data ParseWarning = PartiallySupportedStrategy String
+                  | PartiallySupportedStartTerms String
                   | ContextSensitive deriving Show
 
 
@@ -54,7 +55,9 @@ instance PrettyPrintable ParseError where
   pprint (ParsecParseError e) = text $ show e
   pprint (UnknownFileError e) = text "Don't know how to parse file " <+> text e
   pprint (ProblemNotFoundError s) = text "Error when opening problem file" <+> quotes (text s)
+  pprint (UnsupportedRewritingError s) = text "Unsupported rewriting variant" <+> quotes (text s)
 
 instance PrettyPrintable ParseWarning where 
   pprint (PartiallySupportedStrategy s) = text "Unsupported strategy" <+> quotes (text s)
+  pprint (PartiallySupportedStartTerms s) = text "Unsupported set of start terms" <+> quotes (text s)
   pprint ContextSensitive = text "Contextsensitive signature not supported"

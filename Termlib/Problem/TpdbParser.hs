@@ -19,9 +19,7 @@ along with the Haskell Term Rewriting Library.  If not, see <http://www.gnu.org/
 
 module Termlib.Problem.TpdbParser where
 
-import Control.Monad (liftM)
 import Control.Monad.Error
-import qualified Data.Set as Set
 import Text.ParserCombinators.Parsec.Char
 import Termlib.Problem
 import Text.Parsec hiding (ParseError)
@@ -30,13 +28,12 @@ import qualified Termlib.Rule as R
 import qualified Termlib.Term as Term
 import qualified Termlib.Variable as V
 import qualified Termlib.Trs as T
-import Termlib.Utils (PrettyPrintable(..))
 import Termlib.Problem.ParseErrors (ParseError (..), ParseWarning (..))
 import Control.Monad.Writer.Lazy
 import qualified Termlib.Signature as Signature
 import Termlib.Signature (SignatureMonad)
-import Termlib.FunctionSymbol (Symbol, Signature)
-import Termlib.Variable (Variable, Variables)
+import Termlib.FunctionSymbol (Symbol)
+import Termlib.Variable (Variables)
 type TPDBParser a = ParsecT String Problem (ErrorT ParseError (Writer [ParseWarning])) a 
 
 warn :: ParseWarning -> TPDBParser ()
@@ -49,9 +46,9 @@ problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem s
                             (Right (Right prob), warns) -> Right (prob{startTerms = finStartTerms prob}, warns)
     where stdprob = standardProblem TermAlgebra Full T.empty V.emptyVariables F.emptySignature
           finStartTerms = onProblem finStd finDp finRel
-          finStd sts strat trs vars sig         = mkStartTerms sts (T.definedSymbols trs) (T.constructors trs)
-          finDp sts strat strict weak vars sig  = mkStartTerms sts (T.definedSymbols strict) (T.constructors weak)
-          finRel sts strat strict weak vars sig = mkStartTerms sts (T.definedSymbols both) (T.constructors both)
+          finStd sts _ trs _ _         = mkStartTerms sts (T.definedSymbols trs) (T.constructors trs)
+          finDp sts _ strict weak _ _  = mkStartTerms sts (T.definedSymbols strict) (T.constructors weak)
+          finRel sts _ strict weak _ _ = mkStartTerms sts (T.definedSymbols both) (T.constructors both)
               where both = strict `T.union` weak
           mkStartTerms TermAlgebra _ _ = TermAlgebra
           mkStartTerms (BasicTerms _ _) d c = BasicTerms d c 
@@ -68,11 +65,13 @@ modifyStrictTrs :: (T.Trs -> T.Trs) -> TPDBParser ()
 modifyStrictTrs f = modifyRelation f'
   where f' (Standard trs) = Standard $ f trs
         f' (Relative strict weak) = Relative (f strict) weak
+        f' (DP dps trs) = DP (f dps) trs
 
 modifyWeakTrs :: (T.Trs -> T.Trs) -> TPDBParser ()
 modifyWeakTrs f = modifyRelation f'
   where f' (Standard trs) = Relative trs $ f T.empty
         f' (Relative strict weak) = Relative strict (f weak)
+        f' (DP dps trs) = DP dps (f trs)
 
 setStartTerms :: StartTerms -> TPDBParser ()
 setStartTerms st = do prob <- getState
@@ -113,9 +112,9 @@ speclist :: TPDBParser ()
 speclist = many spec >> eof >> return ()
 
 spec :: TPDBParser ()
-spec = do finwhite (char '(')
-          spec'
-          finwhite (char ')')
+spec = do _ <- finwhite (char '(')
+          _ <- spec'
+          _ <- finwhite (char ')')
           return ()
 
 spec' :: TPDBParser ()
@@ -136,24 +135,24 @@ listofrules = many (inwhite rule) >> return ()
 
 
 rule :: TPDBParser ()
-rule = do lhs <- term
-          whitespaces
-          sep <- try (string "->=") <|> string "->"
-          whitespaces
-          rhs <- term
-          condlist <- try (whitespaces >> char '|' >> whitespaces >> condlist) <|> return []
-          if null condlist then (if sep == "->=" then addWeakRule else addStrictRule) (R.Rule lhs rhs)  else 
-            error "Conditional Rewriting not supported"
+rule = do lhs   <- term
+          _     <- whitespaces
+          sep   <- try (string "->=") <|> string "->"
+          _     <- whitespaces
+          rhs   <- term
+          clist <- try (whitespaces >> char '|' >> whitespaces >> condlist) <|> return []
+          if null clist then (if sep == "->=" then addWeakRule else addStrictRule) (R.Rule lhs rhs)  else 
+            throwError $ UnsupportedRewritingError "Conditional rewriting"
 
 term :: TPDBParser Term.Term
 term = try complexterm <|> simpleterm
 
 complexterm :: TPDBParser Term.Term
-complexterm = do name <- ident
-                 finwhite $ char '('
+complexterm = do name     <- ident
+                 _        <- finwhite $ char '('
                  subterms <- termlist
-                 whitespaces
-                 char ')'
+                 _        <- whitespaces
+                 _        <- char ')'
                  onSignature $ flip Term.Fun subterms `liftM` (Signature.maybeFresh (F.defaultAttribs name (length subterms)))
 
 simpleterm :: TPDBParser Term.Term
@@ -166,123 +165,161 @@ simpleterm = do name <- ident
 termlist :: TPDBParser [Term.Term]
 termlist = sepBy term (inwhite (char ','))
 
+condlist :: TPDBParser [()]
 condlist = sepBy cond (inwhite (char ','))
 
-cond = do term
-          whitespaces
-          try (string "-><-") <|> string "->"
-          finwhite term
-          return $ error "Conditional Rewriting not supported"
+cond :: TPDBParser ()
+cond = do _ <- term
+          _ <- whitespaces
+          _ <- try (string "-><-") <|> string "->"
+          _ <- finwhite term
+          throwError $ UnsupportedRewritingError "Conditional rewriting"
 
+listofthdecl :: TPDBParser ()
 listofthdecl = many (whitespaces >> char '(' >> finwhite thdecl >> char ')') >> return ()
 
-thdecl = (try theq >> error "Theory declarations not supported")
-         <|> (thid >> error "Theory declarations not supported")
+thdecl :: TPDBParser ()
+thdecl = (try theq >> throwError (UnsupportedRewritingError "Theory declarations"))
+         <|> (thid >> throwError (UnsupportedRewritingError "Theory declarations"))
 
+theq :: TPDBParser [()]
 theq = string "EQUATIONS" >> eqlist
 
+thid :: TPDBParser [String]
 thid = ident >> whitespaces >> idlist
 
+eqlist :: TPDBParser [()]
 eqlist = many (inwhite equation)
 
-equation = do term
-              whitespaces
-              string "=="
-              whitespaces
-              term
-              return $ error "Theory declarations not supported"
+equation :: TPDBParser ()
+equation = do _ <- term
+              _ <- whitespaces
+              _ <- string "=="
+              _ <- whitespaces
+              _ <- term
+              return ()
 
+strategydecl :: TPDBParser ()
 strategydecl = try sfull <|> try sinner <|> try souter <|> scons
 
+sfull :: TPDBParser ()
 sfull = string "FULL" >> setStrategy Full
 
+sinner :: TPDBParser ()
 sinner = string "INNERMOST" >> setStrategy Innermost
 
-souter = string "OUTERMOST" >> error "Outermost strategy not supported"
+souter :: TPDBParser ()
+souter = string "OUTERMOST" >> warn (PartiallySupportedStrategy "OUTERMOST") >> setStrategy Full
 
-scons = string "CONTEXTSENSITIVE" >> csstratlist >> error "Context-Sensitive Rewriting not supported"
+scons :: TPDBParser ()
+scons = string "CONTEXTSENSITIVE" >> csstratlist >> warn ContextSensitive >> setStrategy Full
 
+csstratlist :: TPDBParser [()]
 csstratlist = many (inwhite csstrat)
 
-csstrat = do char '('
-             finwhite ident
-             intlist
-             whitespaces
-             char ')'
-             return $ error "Context-Sensitive Rewriting not supported"
+csstrat :: TPDBParser ()
+csstrat = do _ <- char '('
+             _ <- finwhite ident
+             _ <- intlist
+             _ <- whitespaces
+             _ <- char ')'
+             return ()
 
+intlist :: TPDBParser [Int]
 intlist = many (inwhite oneint)
 
+oneint :: TPDBParser Int
 oneint = do is <- many1 digit
             return (read is :: Int)
 
+starttermdecl :: TPDBParser ()
 starttermdecl = try sta <|> try scb <|> sautomat
 
+sta :: TPDBParser ()
 sta = string "FULL" >> setStartTerms TermAlgebra
 
+scb :: TPDBParser ()
 scb = string "CONSTRUCTOR-BASED" >> setStartTerms (BasicTerms undefined undefined)
 
-sautomat = string "AUTOMATON" >> automatonstuff >> error "Automaton specified start term sets not supported"
+sautomat :: TPDBParser ()
+sautomat = string "AUTOMATON" >> automatonstuff >> warn (PartiallySupportedStartTerms "Automaton specified start term set") >> setStartTerms TermAlgebra
 
+automatonstuff :: TPDBParser ()
 automatonstuff = anylist
 
+typeofproof :: TPDBParser ()
 typeofproof = (string "TERMINATION" <|> string "COMPLEXITY") >> return ()
 
+ident :: TPDBParser String
 ident = many1 (try innocentmin <|> try innocenteq <|> noneOf " \n\r\t()\",|-=")
-        where innocentmin = do char '-'
-                               notFollowedBy $ char '>'
+        where innocentmin = do _ <- char '-'
+                               _ <- notFollowedBy $ char '>'
                                return '-'
-              innocenteq  = do char '='
-                               notFollowedBy $ char '='
+              innocenteq  = do _ <- char '='
+                               _ <- notFollowedBy $ char '='
                                return '='
 
+laxident :: TPDBParser String
 laxident = many1 (noneOf " \n\r\t()\",|")
 
+anylist :: TPDBParser ()
 anylist = (try anylist1 <|> try anylist2 <|> try anylist3 <|> try anylist4 <|> anylist5) >> return ()
 
-anylist1 = do char '('
-              finwhite anylist
-              char ')'
-              whitespaces
-              anylist
+anylist1 :: TPDBParser ()
+anylist1 = do _ <- char '('
+              _ <- finwhite anylist
+              _ <- char ')'
+              _ <- whitespaces
+              _ <- anylist
               return ()
 
-anylist2 = do char ','
-              whitespaces
-              anylist
+anylist2 :: TPDBParser ()
+anylist2 = do _ <- char ','
+              _ <- whitespaces
+              _ <- anylist
               return ()
 
-anylist3 = do laxident
-              whitespaces
-              anylist
+anylist3 :: TPDBParser ()
+anylist3 = do _ <- laxident
+              _ <- whitespaces
+              _ <- anylist
               return ()
 
-anylist4 = do astring
-              whitespaces
-              anylist
+anylist4 :: TPDBParser ()
+anylist4 = do _ <- astring
+              _ <- whitespaces
+              _ <- anylist
               return ()
 
+anylist5 :: TPDBParser ()
 anylist5 = return ()
 
-astring = do char '"'
+astring :: TPDBParser String
+astring = do _   <- char '"'
              res <- many (noneOf "\"")
-             char '"'
+             _   <- char '"'
              return res
 
+idlist :: TPDBParser [String]
 idlist = many (inwhite ident)
 
+whitespace :: TPDBParser Char
 whitespace = space <|> newline <|> tab <|> char '\r'
 
+whitespaces :: TPDBParser String
 whitespaces = many whitespace
 
+whitespaces1 :: TPDBParser String
 whitespaces1 = many1 whitespace
 
-inwhite f = try (do whitespaces
+inwhite :: TPDBParser a -> TPDBParser a
+inwhite f = try (do _   <-whitespaces
                     res <- f
-                    whitespaces
+                    _   <- whitespaces
                     return res)
 
-finwhite f = do whitespaces
+finwhite :: TPDBParser a -> TPDBParser a
+finwhite f = do _   <- whitespaces
                 res <- f
-                whitespaces
+                _   <- whitespaces
                 return res
