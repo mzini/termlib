@@ -52,7 +52,6 @@ import Termlib.Term (Term)
 import Termlib.Variable (Variable)
 import Termlib.FunctionSymbol (Symbol)
 import Termlib.Utils
-import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Set (Set)
@@ -95,16 +94,20 @@ topRewrites :: Term -> Term -> Rule -> Bool
 topRewrites s t r = maybe False (Maybe.isJust . S.match t (rhs r)) (S.match s (lhs r) S.empty)
 
 rewriteAnyRhs :: [Rule] -> [Rule] -> Maybe (Rule, Rule)
-rewriteAnyRhs ss rs = Maybe.listToMaybe $ Maybe.mapMaybe (flip rewriteAnyRule rs) ss
-  where rewriteAnyRule r' = Maybe.listToMaybe . Maybe.mapMaybe (f $ rewrite $ rhs r')
-                              where l     = lhs r'
-                                    f g r = case g r of
-                                              Nothing      -> Nothing
-                                              Just (s, s') -> assert (s == rhs r') $ Just (Rule l s, Rule l s')
+rewriteAnyRhs ss rs = Maybe.listToMaybe $ Maybe.mapMaybe (flip rewriteRhsAnyRule rs) ss
+
+rewriteRhsAnyRule :: Rule -> [Rule] -> Maybe (Rule, Rule)
+rewriteRhsAnyRule r = Maybe.listToMaybe . Maybe.mapMaybe (f $ rewrite $ rhs r)
+                                where l      = lhs r
+                                      f g r' = case g r' of
+                                                 Nothing      -> Nothing
+                                                 Just (s, s') -> assert (s == rhs r) $ Just (Rule l s, Rule l s')
 
 rewriteAny :: [Term] -> [Rule] -> Maybe (Term, Term)
 rewriteAny ts rs = Maybe.listToMaybe $ Maybe.mapMaybe (flip rewriteAnyRule rs) ts
-                   where rewriteAnyRule t' = Maybe.listToMaybe . Maybe.mapMaybe (rewrite t')
+
+rewriteAnyRule :: Term -> [Rule] -> Maybe (Term, Term)
+rewriteAnyRule t = Maybe.listToMaybe . Maybe.mapMaybe (rewrite t)
 
 rewrite :: Term -> Rule -> Maybe (Term, Term)
 rewrite (T.Var _) _      = Nothing

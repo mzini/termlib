@@ -21,25 +21,25 @@ where
 import qualified Data.List as List
 import qualified Data.Set as Set
 import Data.Set (Set, isSubsetOf)
-import qualified Control.Monad.State.Lazy as State
 
 import qualified Termlib.Rule as R
 import Termlib.Rule (Rule)
 import qualified Termlib.Term as T
 import Termlib.Term (Term)
 import qualified Termlib.FunctionSymbol as F
-import Termlib.FunctionSymbol (Symbol, Signature)
+import Termlib.FunctionSymbol (Symbol)
 
-import qualified Termlib.Variable as V
-import Termlib.Variable (Variables, Variable)
-import qualified Termlib.Signature as Signature
+import Termlib.Variable (Variable)
 
 type Rules = [R.Rule]
 data Trs = Trs {rules :: Rules}
            deriving (Eq, Show)
 
+liftTrs :: (Rules -> a) -> Trs -> a
+liftTrs f (Trs trs) = f trs
+
 empty :: Trs
-empty = Trs [] 
+empty = Trs []
 
 singleton :: Rule -> Trs
 singleton r = Trs [r]
@@ -87,7 +87,7 @@ mapRules :: (Rule -> Rule) -> Trs -> Trs
 mapRules f = Trs . map f . rules
 
 mapTerms :: (Term -> Term) -> Trs -> Trs
-mapTerms f (Trs rules) = Trs [R.Rule (f lh) (f rh) | R.Rule lh rh <- rules ]
+mapTerms f (Trs rs) = Trs [R.Rule (f lh) (f rh) | R.Rule lh rh <- rs ]
 
 filterRules :: (Rule -> Bool) -> Trs -> Trs
 filterRules f = Trs . filter f . rules
@@ -154,7 +154,7 @@ isRightLinear = allrules R.isRightLinear
 
 isConstructor :: Trs -> Bool
 isConstructor trs = allrules (cb . R.lhs) trs
-    where cb (T.Fun f ts) = all (\ ti -> T.functionSymbols ti `isSubsetOf` constrs) ts
+    where cb (T.Fun _ ts) = all (\ ti -> T.functionSymbols ti `isSubsetOf` constrs) ts
           cb _          = False
           constrs = constructors trs
 
