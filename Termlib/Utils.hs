@@ -14,24 +14,28 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with the Haskell Term Rewriting Library.  If not, see <http://www.gnu.org/licenses/>.
 -}
+
+{-# LANGUAGE FlexibleContexts #-}
 module Termlib.Utils where 
 
 import Text.PrettyPrint.HughesPJ
 import qualified Control.Monad.State.Lazy as State
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-
+import Text.Parsec.Prim
 
 class Enumerateable a where
   enum :: a -> Int
   invEnum :: Int -> a
 
-
 class PrettyPrintable a where
-    pprint :: a -> Doc
+  pprint :: a -> Doc
 
 instance PrettyPrintable Doc where
-    pprint = id
+  pprint = id
+
+class Parsable a where
+  parse :: Stream s m Char => ParsecT s u m a
 
 -- class CpfPrintable a where
 --    cpfprint :: a -> Element
