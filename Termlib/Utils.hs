@@ -18,11 +18,14 @@ along with the Haskell Term Rewriting Library.  If not, see <http://www.gnu.org/
 {-# LANGUAGE FlexibleContexts #-}
 module Termlib.Utils where 
 
+-- import Control.Monad.Identity ()
 import Text.PrettyPrint.HughesPJ
 import qualified Control.Monad.State.Lazy as State
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Text.Parsec.Prim
+import Text.Parsec.Prim hiding (parse)
+import Text.Parsec.Error (ParseError)
+import Text.Parsec.String ()
 
 class Enumerateable a where
   enum :: a -> Int
@@ -36,6 +39,9 @@ instance PrettyPrintable Doc where
 
 class Parsable a where
   parse :: Stream s m Char => ParsecT s u m a
+
+parseFromString :: Parsable a => String -> Either ParseError a
+parseFromString s = runParser parse () "/dev/stderr" s
 
 -- class CpfPrintable a where
 --    cpfprint :: a -> Element
