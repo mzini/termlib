@@ -23,6 +23,8 @@ import Text.PrettyPrint.HughesPJ
 import qualified Control.Monad.State.Lazy as State
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import Text.Parsec.Prim
+import Text.Parsec
 import Text.Parsec.Prim hiding (parse)
 import Text.Parsec.Error (ParseError)
 import Text.Parsec.String ()

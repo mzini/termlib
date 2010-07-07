@@ -121,6 +121,8 @@ parseStartTerms :: Set F.Symbol -> Set F.Symbol -> Content i -> Parser StartTerm
 parseStartTerms defs constrs doc = case tag "problem" /> tag "startterm" /> txt $ doc of
                                      [] -> return TermAlgebra
                                      _ -> return $ BasicTerms defs constrs
+                                     -- "full" -> return $ TermAlgebra
+                                     -- s -> warn (PartiallySupportedStartTerms s) >> return TermAlgebra
                                
 parseTrs :: Signature -> SymMap -> Content i -> Parser (Trs,Trs, Variables)
 parseTrs sig syms doc = P $ local (const $ Just syms) $ runParser $ parseRules sig doc
