@@ -60,7 +60,7 @@ import Text.PrettyPrint.HughesPJ hiding (empty)
 
 data Rule = Rule {lhs :: Term, rhs :: Term} deriving Show
 
-data Strictness = Strict | Weak
+data Strictness = StrictRule | WeakRule
 
 instance PrettyPrintable Rule where
     pprint (Rule l r) = pprint l <+> text "->" <+> pprint r
