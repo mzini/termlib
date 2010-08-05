@@ -161,6 +161,8 @@ isConstructor trs = allrules (cb . R.lhs) trs
 isOverlapping :: Trs -> Bool
 isOverlapping (Trs rs) = R.isAnyOverlapping rs rs
 
+isCollapsing :: Trs -> Bool
+isCollapsing trs = any R.isCollapsing $ rules trs
 
 isNestedRecursive :: Trs -> Bool
 isNestedRecursive (Trs rs) = any nr rs

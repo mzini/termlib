@@ -188,6 +188,9 @@ isLeftGround = T.isGround . lhs
 isRightGround :: Rule -> Bool
 isRightGround = T.isGround . rhs
 
+isCollapsing :: Rule -> Bool
+isCollapsing = T.isVariable . rhs
+
 isOverlapping :: Rule -> Rule -> Bool
 isOverlapping r1 r2 = any (S.isRenamedUnifiable l2) (appropriateSubterms l1) || any (S.isRenamedUnifiable l1) (appropriateSubterms l2)
   where l1 = lhs r1
