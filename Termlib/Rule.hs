@@ -116,10 +116,19 @@ rewrite (T.Var _) _      = Nothing
 rewrite t@(T.Fun f ts) r = case topRewrite t r of
                                Nothing -> subresult [] ts
                                Just t' -> Just t'
-  where subresult _ []         = Nothing
+  where subresult _   []       = Nothing
         subresult ts1 (t':ts2) = case rewrite t' r of
                                    Nothing      -> subresult (ts1 ++ [t']) ts2
                                    Just (s, s') -> assert (t' == s) Just (T.Fun f (ts1 ++ s:ts2), T.Fun f (ts1 ++ s':ts2))
+
+rewriteCandidates :: Term -> Rule -> [(Term, Term)]
+rewriteCandidates (T.Var _)      _ = []
+rewriteCandidates t@(T.Fun f ts) r = case topRewrite t r of
+                                       Nothing -> subresult [] ts
+                                       Just t' -> t' : subresult [] ts
+  where subresult _   []       = []
+        subresult ts1 (t':ts2) = map (\(s, s') -> (applyContext f ts1 ts2 s, applyContext f ts1 ts2 s')) (rewriteCandidates t' r) ++ subresult (ts1 ++ [t']) ts2
+        applyContext f' ts1 ts2 s = T.Fun f' (ts1 ++ s:ts2)
 
 topRewrite :: Term -> Rule -> Maybe (Term, Term)
 topRewrite t (Rule l r) = case S.match t l S.empty of
