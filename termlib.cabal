@@ -37,4 +37,4 @@ library
 
  ghc-options:       -O2 -Wall -fno-warn-orphans
 
- build-depends:	    base>=4.0.0.0, containers, mtl, HaXml, filepath, parsec>=3.0.0, pretty, fgl, graphviz>=2999.1.0.2
+ build-depends:	    base>=4.0.0.0, containers, mtl, HaXml, filepath, parsec>=3.0.0, pretty, fgl
