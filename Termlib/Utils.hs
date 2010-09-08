@@ -27,9 +27,8 @@ import Text.Parsec.Prim hiding (parse)
 import Text.Parsec.Error (ParseError)
 import Text.Parsec.String ()
 
-class Enumerateable a where
-  enum :: a -> Int
-  invEnum :: Int -> a
+
+-- * Parsing and Printing
 
 class PrettyPrintable a where
   pprint :: a -> Doc
@@ -43,21 +42,8 @@ class Parsable a where
 parseFromString :: Parsable a => String -> Either ParseError a
 parseFromString s = runParser parse () "/dev/stderr" s
 
--- class CpfPrintable a where
---    cpfprint :: a -> Element
 
-newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
-
-instance Monad m => Monad (MaybeT m) where
-  return  = MaybeT . return . Just
-  x >>= f = MaybeT $ runMaybeT x >>= maybe (return Nothing) (runMaybeT . f)
-  fail _ = MaybeT $ return Nothing
-
-
-eitherM :: Monad m => (a -> m c) -> (b -> m c) -> m (Either a b) -> m c
-eitherM ma mb me = do e <- me 
-                      either ma mb  e
-
+-- * Memoisation
 
 type MemoAction k a = State.State (Map.Map k a)
 
@@ -76,10 +62,10 @@ runMemoAction ma = fst $ State.runState ma Map.empty
 liftMemo :: (Ord k) => (k -> a) -> (k -> MemoAction k a a)
 liftMemo f k = memo k (return $ f k)
 
+-- * List Utility Functions
 
 listProduct :: [[a]] -> [[a]]
 listProduct []             = [[]]
--- listProduct [xs]           = map (\ x -> [x]) xs
 listProduct (xs:xss) = foldl f [] xs
   where f a x = map (\ xs' -> x:xs') (listProduct xss) ++ a
 
@@ -88,13 +74,37 @@ snub :: Ord a => [a] -> [a]
 snub = Set.toList . Set.fromList
 
 
+-- * Monad Utilities
+
+newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
+
+instance Monad m => Monad (MaybeT m) where
+  return  = MaybeT . return . Just
+  x >>= f = MaybeT $ runMaybeT x >>= maybe (return Nothing) (runMaybeT . f)
+  fail _ = MaybeT $ return Nothing
+
+
+eitherM :: Monad m => (a -> m c) -> (b -> m c) -> m (Either a b) -> m c
+eitherM ma mb me = do e <- me 
+                      either ma mb  e
+
 ifM :: Monad m => m Bool -> m a -> m a -> m a
 ifM b t e = do g <- b
                if g then t else e
 
+-- * Parsec Utility Functions
+
+
 ($++$) :: Doc -> Doc -> Doc
 a $++$ b = a $+$ text "" $+$ b
 
-
 paragraph :: String -> Doc
 paragraph s = fsep [text w | w <- words s]
+
+underline :: Doc -> Doc
+underline p = p $+$ text (take (length $ show p) $ repeat '-')
+
+-- * Misc
+class Enumerateable a where
+  enum :: a -> Int
+  invEnum :: Int -> a
