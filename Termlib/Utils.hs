@@ -1,3 +1,4 @@
+{-# LANGUAGE ParallelListComp #-}
 {-
 This file is part of the Haskell Term Rewriting Library.
 
@@ -103,6 +104,16 @@ paragraph s = fsep [text w | w <- words s]
 
 underline :: Doc -> Doc
 underline p = p $+$ text (take (length $ show p) $ repeat '-')
+
+enumerated :: [Doc] -> [Doc] -> Doc
+enumerated indices ds = vcat [ i <> text ")" <+> d | d <- ds | i <- indices]
+
+pprintInt :: Int -> Doc
+pprintInt = text . show
+
+pprintChar :: Char -> Doc
+pprintChar c = text [c]
+
 
 -- * Misc
 class Enumerateable a where
