@@ -99,6 +99,9 @@ argumentPositions sig sym  = case arity sig  sym of
                               0 -> []
                               n -> [1..n]
 
+restrictToSymbols :: Signature -> Set.Set Symbol -> Signature
+restrictToSymbols = Sig.restrictToSymbols
+
 symbols :: Signature -> Set.Set Symbol
 symbols = Sig.symbols
 

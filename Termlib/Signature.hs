@@ -31,6 +31,7 @@ module Termlib.Signature
   , Termlib.Signature.lookup
   , attribute
   , attributes
+  , restrictToSymbols
   , symbols
   , liftS
   , foldWithKey
@@ -42,7 +43,6 @@ import qualified Data.IntMap as IntMap
 import qualified Data.Set as Set
 import Data.Set (Set)
 import Control.Monad
-import Control.Monad.Trans
 import Termlib.Utils
 import qualified Control.Monad.State.Lazy as State
 
@@ -77,7 +77,6 @@ empty = Signature (IntMap.empty, 0)
 cardinality :: Signature sym attribs -> Int 
 cardinality (Signature (_, c)) = c
 
-
 fresh :: Enumerateable sym => attribs -> SignatureMonad sym attribs sym
 fresh attribs = do (invEnum . cardinality) `liftM` modifySignature f
   where f (Signature (sig, counter)) = Signature (sig', counter')
@@ -106,6 +105,8 @@ attributes = attribute id
 getAttributes :: Enumerateable sym => sym -> SignatureMonad sym attribs attribs
 getAttributes sym = getSignature >>= return . attributes sym
 
+restrictToSymbols :: (Ord sym, Enumerateable sym) => Signature sym attribs -> Set sym -> Signature sym attribs
+restrictToSymbols (Signature (sig, counter)) fs = Signature (IntMap.filterWithKey (\f _ -> invEnum f `Set.member` fs) sig, counter)
 
 symbols :: (Ord sym, Enumerateable sym) => Signature sym attribs -> Set sym
 symbols (Signature (m, _)) = IntMap.foldWithKey f Set.empty m
