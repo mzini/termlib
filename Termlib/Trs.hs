@@ -57,7 +57,7 @@ union :: Trs -> Trs -> Trs
 (Trs trs1) `union` (Trs trs2) = Trs $ trs1 ++ trs2
 
 unions :: [Trs] -> Trs
-unions = foldl union Trs.empty
+unions = foldl union empty
 
 (\\) :: Trs -> Trs -> Trs
 (Trs trs1) \\ (Trs trs2) = Trs $ trs1 List.\\ trs2
