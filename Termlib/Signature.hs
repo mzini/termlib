@@ -97,7 +97,9 @@ lookup :: (Enumerateable sym, Eq attribs) => Int -> Signature sym attribs -> May
 lookup n (Signature (m, _)) = IntMap.lookup n m
 
 attribute :: Enumerateable sym => (attribs -> a) -> sym -> Signature sym attribs -> a
-attribute f s (Signature (m,_)) = f p where Just p = IntMap.lookup (enum s) m
+attribute f s (Signature (m,_)) = f p 
+    where mp = IntMap.lookup (enum s) m
+          p = case mp of Just p' -> p'; _ -> error $ "Function symbol with id " ++ show (enum s) ++ " not found"
 
 attributes :: Enumerateable sym => sym -> Signature sym attribs -> attribs
 attributes = attribute id

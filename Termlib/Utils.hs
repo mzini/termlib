@@ -21,6 +21,7 @@ module Termlib.Utils where
 
 -- import Control.Monad.Identity ()
 import Text.PrettyPrint.HughesPJ
+import Data.List (transpose)
 import qualified Control.Monad.State.Lazy as State
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -36,6 +37,23 @@ class PrettyPrintable a where
 
 instance PrettyPrintable Doc where
   pprint = id
+
+columns :: Int -> [[Doc]] -> Doc
+columns spce cols = columns' [(width cs, cs) | cs <- cols]
+    where width col = spce + maximum (0 : [docLength e | e <- col])
+
+columns' :: [(Int, [Doc])] -> Doc
+columns' cols = vcat [ hcat [ padToLength i e | (i,e) <- row ] | row <- rows ]
+    where cols'   = [ (i, cs ++ take (numrows - length cs) (repeat empty)) | (i,cs) <- cols]
+          numrows = maximum $ 0 : [length cs | (_,cs) <- cols ]
+          rows    = transpose [ [ (i,c) | c <- cs ] | (i,cs) <- cols']
+
+docLength :: Doc -> Int
+docLength = length . render
+
+padToLength :: Int -> Doc -> Doc
+padToLength len d = d <> text padding
+    where padding = take (len - docLength d) $ repeat ' '
 
 class Parsable a where
   parse :: Stream s m Char => ParsecT s u m a
