@@ -53,9 +53,14 @@ lhss = map R.lhs . rules
 rhss :: Trs -> [T.Term]
 rhss = map R.rhs . rules
 
-union :: Trs -> Trs -> Trs
-(Trs trs1) `union` (Trs trs2) = Trs $ trs1 ++ trs2
+append :: Trs -> Trs -> Trs
+(Trs trs1) `append` (Trs trs2) = Trs $ trs1 ++ trs2
 
+union :: Trs -> Trs -> Trs
+(Trs trs1) `union` (Trs trs2) = Trs $ foldl ins trs2 trs1 
+    where ins [] r = [r]
+          ins (r:rs) r' | r == r'   = r:rs
+                        | otherwise = r : ins rs r'
 unions :: [Trs] -> Trs
 unions = foldl union empty
 
