@@ -21,14 +21,14 @@ module Termlib.Utils where
 
 -- import Control.Monad.Identity ()
 import Text.PrettyPrint.HughesPJ
-import Data.List (transpose)
+import Data.List (transpose, intersperse)
 import qualified Control.Monad.State.Lazy as State
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Text.Parsec.Prim hiding (parse)
 import Text.Parsec.Error (ParseError)
 import Text.Parsec.String ()
-
+import qualified Text.PrettyPrint.HughesPJ as PP
 
 -- * Parsing and Printing
 
@@ -43,17 +43,31 @@ columns spce cols = columns' [(width cs, cs) | cs <- cols]
     where width col = spce + maximum (0 : [docLength e | e <- col])
 
 columns' :: [(Int, [Doc])] -> Doc
-columns' cols = vcat [ hcat [ padToLength i e | (i,e) <- row ] | row <- rows ]
-    where cols'   = [ (i, cs ++ take (numrows - length cs) (repeat empty)) | (i,cs) <- cols]
+columns' cols = vcat [ pprow row | row <- rows]
+    where rows      = transpose [ [ (i,c) | c <- cs ] | (i,cs) <- cols']
+          pprow row = vcat [ text (concat l) | l <- transpose rowLines]
+              where rowLines  = [[ pad len l | l <- ls ++ take (h - length ls) (repeat "")]  | (len,ls) <- cs]
+                    cs = [ (len, lines (show e)) | (len,e) <- row ]
+                    h  = maximum $ 1 : [length ls | (_,ls) <- cs]
+                    pad len s = s ++ take (len - length s) (repeat ' ')
           numrows = maximum $ 0 : [length cs | (_,cs) <- cols ]
-          rows    = transpose [ [ (i,c) | c <- cs ] | (i,cs) <- cols']
+          cols'   = [ (i, cs ++ take (numrows - length cs) (repeat empty)) | (i,cs) <- cols]
+          
 
 docLength :: Doc -> Int
-docLength = length . render
+docLength d = maximum $ 0 : [ length l | l <- lines $ show d]
+
+docHeight :: Doc -> Int
+docHeight d = length $ lines $ show d
 
 padToLength :: Int -> Doc -> Doc
 padToLength len d = d <> text padding
     where padding = take (len - docLength d) $ repeat ' '
+
+padToHeight :: Int -> Doc -> Doc
+padToHeight h d = d $$ padding
+    where padding = hcat [ text "" | _ <- [1..(h - docHeight d)]]
+
 
 class Parsable a where
   parse :: Stream s m Char => ParsecT s u m a
