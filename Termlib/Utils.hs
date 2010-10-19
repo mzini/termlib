@@ -52,7 +52,6 @@ columns' cols = vcat [ pprow row | row <- rows]
                     pad len s = s ++ take (len - length s) (repeat ' ')
           numrows = maximum $ 0 : [length cs | (_,cs) <- cols ]
           cols'   = [ (i, cs ++ take (numrows - length cs) (repeat empty)) | (i,cs) <- cols]
-          
 
 data PPTree a = PPTree { pptRoots :: [a]
                        , pptSuc :: a -> [a]}
