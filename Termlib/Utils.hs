@@ -57,13 +57,6 @@ columns' cols = vcat [ pprow row | row <- rows]
 data PPTree a = PPTree { pptRoots :: [a]
                        , pptSuc :: a -> [a]}
 
-
-a = "a"
-b = "b"
-c = "c"
-d = "d"
-e = "e"
-
 printTree :: Int -- label offset
              -> ([a] -> a -> Doc) -- printing of nodes
              -> ([a] -> a -> Doc) -- printing of labels
@@ -87,20 +80,6 @@ printTree offset ppNode ppLabel tree  = printTree' True [] [] (pptRoots tree)
           printEdges _ (False : es) = printEdges False es <> text (spce ++ " ")
           printEdges _ [] = PP.empty
           spce = "   "
-
-              -- printTrees offset ppNode ppLabel  = vcat $ intersperse (text "") [printTree offset ppNode ppLabel n | n <- nodes, Graph.indeg ewdgSCC n == 0]
-              -- printTree offset ppNode ppLabel node = printTree' [] [node] node
-              --     where printTree' edges pth n = (printEdges edges <> text "->" <+> (ppNode pth n) $$ (nest offset (ppLabel pth n)))
-              --                                    $+$ (printSubtrees edges' pth (sortBy compareLabel $ Graph.suc ewdgSCC n))
-              --               where edges' = (nextIndent edges + 4,text "I") : edges
-              --           printSubtrees _       _   [] = PP.empty
-              --           printSubtrees edges pth ns = (vcat [ printTree' (e : edges) (pth ++ [n]) n | (e, n) <- zip es ns])
-              --               where es = take (length ns - 1) (repeat mid) ++ [end]
-              --                     i = nextIndent edges
-              --                     mid = (i,text "|")
-              --                     end = (i,text "`")
-              --           nextIndent edges = maximum (0 : [n | (n,_) <- edges]) + 1
-
 
 docLength :: Doc -> Int
 docLength d = maximum $ 0 : [ length l | l <- lines $ show d]
