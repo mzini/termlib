@@ -160,6 +160,12 @@ isRightLinear = allrules R.isRightLinear
 
 -- rightGround = allrules R.rightGround
 
+isSizeIncreasing :: Trs -> Bool
+isSizeIncreasing trs = any R.isSizeIncreasing $ rules trs
+
+isNonSizeIncreasing :: Trs -> Bool
+isNonSizeIncreasing = allrules R.isNonSizeIncreasing
+
 isConstructor :: Trs -> Bool
 isConstructor trs = allrules (cb . R.lhs) trs
     where cb (T.Fun _ ts) = all (\ ti -> T.functionSymbols ti `isSubsetOf` constrs) ts

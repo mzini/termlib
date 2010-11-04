@@ -200,6 +200,18 @@ isRightGround = T.isGround . rhs
 isCollapsing :: Rule -> Bool
 isCollapsing = T.isVariable . rhs
 
+isSizeDecreasing :: Rule -> Bool
+isSizeDecreasing rule@(Rule l r) = T.size l > T.size r && isNonDuplicating rule
+
+isNonSizeDecreasing :: Rule -> Bool
+isNonSizeDecreasing rule@(Rule l r) = T.size r >= T.size l && isNonErasing rule
+
+isSizeIncreasing :: Rule -> Bool
+isSizeIncreasing rule@(Rule l r) = T.size r > T.size l && isNonErasing rule
+
+isNonSizeIncreasing :: Rule -> Bool
+isNonSizeIncreasing rule@(Rule l r) = T.size l >= T.size r && isNonDuplicating rule
+
 isOverlapping :: Rule -> Rule -> Bool
 isOverlapping r1 r2 = any (S.isRenamedUnifiable l2) (appropriateSubterms l1) || any (S.isRenamedUnifiable l1) (appropriateSubterms l2)
   where l1 = lhs r1
