@@ -20,6 +20,7 @@ module Termlib.Problem
   , StartTerms(..)
   , Relation(..)
   , Problem(..)
+  , ReplacementMap
   , standardProblem
   , dpProblem
   , relativeProblem
@@ -37,16 +38,18 @@ where
 import Data.Set (Set)
 
 import qualified Termlib.Trs as Trs
-import Termlib.Trs.PrettyPrint
+import Termlib.Trs.PrettyPrint()
 import Termlib.Trs (Trs) 
 import Termlib.Variable (Variables)
-import qualified Termlib.FunctionSymbol as F
 import Termlib.FunctionSymbol (Signature, Symbol)
+import Termlib.ContextSensitive (ReplacementMap)
 import Termlib.Utils
 import Text.PrettyPrint.HughesPJ
 
 data Strategy = Innermost
-              | Full deriving (Eq, Show)
+              | Full 
+              | ContextSensitive ReplacementMap
+              | Outermost deriving (Eq, Show)
 
 data StartTerms = BasicTerms (Set Symbol) (Set Symbol)
                 | TermAlgebra 
@@ -57,7 +60,7 @@ data Relation = Standard Trs
               | Relative Trs Trs 
                 deriving (Eq, Show)
 
-data Problem = Problem {startTerms :: StartTerms
+data Problem = Problem { startTerms :: StartTerms
                        , strategy :: Strategy
                        , relation :: Relation
                        , variables :: Variables
@@ -106,24 +109,26 @@ withRelativeProblem f = onProblem n m (\ s r ts tw v sig -> Just $ f s r ts tw v
 
 
 instance PrettyPrintable Problem where 
-  pprint (Problem terms strategy (Standard trs) vars sig) = text "REWRITE relation according to the following TRS" 
-                                                             <+> pphlp_terms terms <+> pphlp_strat strategy $+$ (nest 1 $ pprint (trs, sig, vars))
+  pprint (Problem terms strat (Standard trs) vars sig) = text "REWRITE relation according to the following TRS" 
+                                                             <+> pphlp_terms terms <+> pphlp_strat strat $+$ (nest 1 $ pprint (trs, sig, vars))
 
-  pprint (Problem terms strategy (DP strict weak) vars sig) = text "DEPENDENCY PAIR problem according to the following TRSs" 
-                                                              <+> pphlp_terms terms <+> pphlp_strat strategy 
+  pprint (Problem terms strat (DP strict weak) vars sig) = text "DEPENDENCY PAIR problem according to the following TRSs" 
+                                                              <+> pphlp_terms terms <+> pphlp_strat strat 
                                                               $+$ (nest 1 (text "strict rules:" $+$ pprint (strict, sig, vars)
                                                                            $+$ text "weak rules:" $+$ pprint (weak, sig, vars)))
 
-  pprint (Problem terms strategy (Relative strict weak) vars sig) = text "RELATIVE problem according to the following TRSs" 
-                                                                    <+> pphlp_terms terms <+> pphlp_strat strategy 
+  pprint (Problem terms strat (Relative strict weak) vars sig) = text "RELATIVE problem according to the following TRSs" 
+                                                                    <+> pphlp_terms terms <+> pphlp_strat strat 
                                                                     $+$ (nest 1 (text "strict rules:" $+$ pprint (strict, sig, vars)
                                                                                         $+$ text "weak rules:" $+$ pprint (weak, sig, vars)))
 
-
+pphlp_terms :: StartTerms -> Doc
 pphlp_terms (BasicTerms _ _) = text "restricted to basic start-terms"
 pphlp_terms _ = empty
 
+pphlp_strat :: Strategy -> Doc
 pphlp_strat Innermost = text "and innermost reductions"
+pphlp_strat Outermost = text "and outermost reductions"
 pphlp_strat _ = empty
 
 strictTrs :: Problem -> Trs
@@ -146,6 +151,7 @@ measureName p = ms (strategy p) <+> mn (relation p) <+> mt (startTerms p) <> tex
           mn (DP _ _)       = text"DP"
           mn (Relative _ _) = text "relative"
           ms Innermost = text "innermost"
+          ms Outermost = text "outermost"
           ms Full      = empty
           mt (BasicTerms _ _) = text "runtime"
           mt TermAlgebra    = text "derivational"

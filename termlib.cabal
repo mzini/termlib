@@ -34,6 +34,7 @@ library
                     Termlib.Problem.TpdbParser
                     Termlib.Problem.Parser
                     Termlib.Repl
+                    Termlib.ContextSensitive
 
  ghc-options:       -O2 -Wall -fno-warn-orphans
 

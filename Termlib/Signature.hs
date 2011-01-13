@@ -26,11 +26,13 @@ module Termlib.Signature
   , fresh
   , maybeFresh
   , getAttributes
+  , modifySignature
   , runSignature
   , findByAttribute
   , Termlib.Signature.lookup
   , attribute
   , attributes
+  , alterAttributes
   , restrictToSymbols
   , symbols
   , liftS
@@ -92,6 +94,10 @@ maybeFresh attribs = do sig <- getSignature
 findByAttribute :: (Enumerateable sym, MonadPlus m) => (attribs -> Bool) -> Signature sym attribs -> m sym
 findByAttribute p (Signature (m,_)) = IntMap.foldWithKey f mzero m
   where f sym attrib r =  (if p attrib then return (invEnum sym) else mzero)  `mplus` r
+
+
+alterAttributes :: (Enumerateable sym) => (Maybe attribs -> Maybe attribs) -> sym -> Signature sym attribs -> Signature sym attribs
+alterAttributes f sym (Signature (m, c)) = Signature (IntMap.alter f (enum sym) m, c)
 
 lookup :: (Enumerateable sym, Eq attribs) => Int -> Signature sym attribs -> Maybe attribs
 lookup n (Signature (m, _)) = IntMap.lookup n m

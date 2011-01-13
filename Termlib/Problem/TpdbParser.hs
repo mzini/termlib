@@ -31,9 +31,9 @@ import qualified Termlib.Trs as T
 import Termlib.Problem.ParseErrors (ParseError (..), ParseWarning (..))
 import Control.Monad.Writer.Lazy
 import qualified Termlib.Signature as Signature
-import Termlib.Signature (SignatureMonad)
-import Termlib.FunctionSymbol (Symbol)
 import Termlib.Variable (Variables)
+
+
 type TPDBParser a = ParsecT String Problem (ErrorT ParseError (Writer [ParseWarning])) a 
 
 warn :: ParseWarning -> TPDBParser ()
@@ -55,7 +55,6 @@ problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem s
 
 parseProblem :: TPDBParser Problem
 parseProblem = speclist >> getState
-
 
 modifyRelation :: (Relation -> Relation) -> TPDBParser ()
 modifyRelation f = do prob <- getState
@@ -83,11 +82,20 @@ setStrategy strat = do prob <- getState
                        setState $ prob{strategy = strat}
                        return ()
 
-onSignature :: SignatureMonad Symbol F.Attributes a -> TPDBParser a
+onSignature :: F.SignatureMonad a -> TPDBParser a
 onSignature m = do prob <- getState
                    let (a,sig') = Signature.runSignature m $ signature prob
                    putState $ prob {signature = sig'}
                    return a
+
+getSymbol :: F.FunctionName -> F.Arity -> TPDBParser F.Symbol
+getSymbol name arity = onSignature m 
+    where m = do sig <- Signature.getSignature 
+                 let setarity = undefined
+                 case F.symbol name sig of 
+                   Just sym -> do Signature.modifySignature $ Signature.alterAttributes setarity sym
+                                  return sym
+                   Nothing  -> F.fresh (F.defaultAttribs name arity)
 
 getVariables :: TPDBParser Variables 
 getVariables = variables `liftM` getState 
@@ -116,15 +124,13 @@ spec = do _ <- finwhite (char '(')
           _ <- spec'
           _ <- finwhite (char ')')
           return ()
-
-spec' :: TPDBParser ()
-spec' = (string "VAR" >> whitespaces >> varlist <?> "VAR declaration")
-        <|> (string "RULES" >> whitespaces >> listofrules <?> "RULES declaration")
-        <|> (string "THEORY" >> whitespaces >> listofthdecl <?> "THEORY declaration")
-        <|> (try (string "STRATEGY") >> whitespaces >> strategydecl <?> "STRATEGY declaration")
-        <|> (try (string "STARTTERM") >> whitespaces >> starttermdecl <?> "STARTTERM declaration")
-        <|> (string "PROOF" >> whitespaces >> typeofproof <?> "PROOF declaration")
-        <|> (ident >> whitespaces >> anylist <?> "any declaration")
+    where spec' = (string "VAR" >> whitespaces >> varlist <?> "VAR declaration")
+              <|> (string "RULES" >> whitespaces >> listofrules <?> "RULES declaration")
+              <|> (string "THEORY" >> whitespaces >> listofthdecl <?> "THEORY declaration")
+              <|> (try (string "STRATEGY") >> whitespaces >> strategydecl <?> "STRATEGY declaration")
+              <|> (try (string "STARTTERM") >> whitespaces >> starttermdecl <?> "STARTTERM declaration")
+              <|> (string "PROOF" >> whitespaces >> typeofproof <?> "PROOF declaration")
+              <|> (ident >> whitespaces >> anylist <?> "any declaration")
 
 varlist :: TPDBParser ()
 varlist = idlist >>= mapM_ addFreshVar
@@ -153,14 +159,16 @@ complexterm = do name     <- ident
                  subterms <- termlist
                  _        <- whitespaces
                  _        <- char ')'
-                 onSignature $ flip Term.Fun subterms `liftM` (Signature.maybeFresh (F.defaultAttribs name (length subterms)))
+                 sym      <- getSymbol name (length subterms)
+                 return $ Term.Fun sym subterms
 
 simpleterm :: TPDBParser Term.Term
 simpleterm = do name <- ident
                 vars <- getVariables
                 case V.variable name vars of 
                   Just v -> return $ Term.Var v
-                  Nothing -> onSignature $ flip Term.Fun [] `liftM` (F.maybeFresh (F.defaultAttribs name 0))
+                  Nothing -> do sym <- getSymbol name 0
+                                return $ Term.Fun sym []
 
 termlist :: TPDBParser [Term.Term]
 termlist = sepBy term (inwhite (char ','))
@@ -209,12 +217,14 @@ sinner :: TPDBParser ()
 sinner = string "INNERMOST" >> setStrategy Innermost
 
 souter :: TPDBParser ()
-souter = string "OUTERMOST" >> warn (PartiallySupportedStrategy "OUTERMOST") >> setStrategy Full
+souter = string "OUTERMOST" >> setStrategy Outermost
 
 scons :: TPDBParser ()
-scons = string "CONTEXTSENSITIVE" >> csstratlist >> warn ContextSensitive >> setStrategy Full
+scons = do string "CONTEXTSENSITIVE" 
+           rmap <- csstratlist 
+           setStrategy (ContextSensitive rmap)
 
-csstratlist :: TPDBParser [()]
+csstratlist :: TPDBParser ReplacementMap
 csstratlist = many (inwhite csstrat)
 
 csstrat :: TPDBParser ()

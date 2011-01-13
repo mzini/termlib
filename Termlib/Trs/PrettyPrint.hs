@@ -20,14 +20,11 @@ module Termlib.Trs.PrettyPrint where
 
 import Termlib.Trs hiding (empty)
 import qualified Termlib.Rule as R
-import qualified Termlib.FunctionSymbol as F
 import qualified Termlib.Variable as V
 import Termlib.Term
-import qualified Termlib.Signature as Sig
 import Termlib.FunctionSymbol (Signature)
 import Termlib.Variable (Variables)
 import Text.PrettyPrint.HughesPJ
-import Control.Monad (forM)
 import Termlib.Utils
 
 

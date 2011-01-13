@@ -43,7 +43,7 @@ instance Error ParseError where
 
 data ParseWarning = PartiallySupportedStrategy String
                   | PartiallySupportedStartTerms String
-                  | ContextSensitive deriving Show
+                    deriving Show
 
 
 instance PrettyPrintable ParseError where
@@ -60,4 +60,3 @@ instance PrettyPrintable ParseError where
 instance PrettyPrintable ParseWarning where 
   pprint (PartiallySupportedStrategy s) = text "Unsupported strategy" <+> quotes (text s)
   pprint (PartiallySupportedStartTerms s) = text "Unsupported set of start terms" <+> quotes (text s)
-  pprint ContextSensitive = text "Contextsensitive signature not supported"
