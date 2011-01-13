@@ -22,6 +22,7 @@ module Termlib.Problem.TpdbParser where
 import Control.Monad.Error
 import Text.ParserCombinators.Parsec.Char
 import Termlib.Problem
+import qualified Termlib.ContextSensitive as CS
 import Text.Parsec hiding (ParseError)
 import qualified Termlib.FunctionSymbol as F
 import qualified Termlib.Rule as R
@@ -225,15 +226,17 @@ scons = do string "CONTEXTSENSITIVE"
            setStrategy (ContextSensitive rmap)
 
 csstratlist :: TPDBParser ReplacementMap
-csstratlist = many (inwhite csstrat)
+csstratlist = do ls <- many (inwhite csstrat)
+                 return $ foldl (\ rm (sym, is) -> CS.setReplacing sym is rm) CS.empty ls
 
-csstrat :: TPDBParser ()
+csstrat :: TPDBParser (F.Symbol, [Int])
 csstrat = do _ <- char '('
-             _ <- finwhite ident
-             _ <- intlist
+             name <- finwhite ident
+             is <- intlist
              _ <- whitespaces
              _ <- char ')'
-             return ()
+             sym <- getSymbol name 0
+             return (sym, is)
 
 intlist :: TPDBParser [Int]
 intlist = many (inwhite oneint)

@@ -152,6 +152,7 @@ measureName p = ms (strategy p) <+> mn (relation p) <+> mt (startTerms p) <> tex
           mn (Relative _ _) = text "relative"
           ms Innermost = text "innermost"
           ms Outermost = text "outermost"
+          ms (ContextSensitive _) = text "context-sensitive"
           ms Full      = empty
           mt (BasicTerms _ _) = text "runtime"
           mt TermAlgebra    = text "derivational"

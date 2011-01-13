@@ -26,21 +26,21 @@ import Data.IntSet (IntSet)
 import qualified Data.IntSet as ISet
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Termlib.FunctionSymbol (Signature, Symbol)
+import Termlib.FunctionSymbol (Symbol)
 
 
-newtype ReplacementMap = RM (Signature, Map Symbol IntSet) deriving (Eq, Show)
+type ReplacementMap = Map Symbol IntSet 
 
-empty :: Signature -> ReplacementMap
-empty sig  = RM (sig, Map.empty)
+empty :: ReplacementMap
+empty = Map.empty
 
 replacingPositions :: Symbol -> ReplacementMap -> [Int]
-replacingPositions f (RM (_, m)) = 
+replacingPositions f m = 
     case Map.lookup f m of 
       Just poss -> ISet.toList poss
       Nothing   -> []
 
 setReplacing :: Symbol -> [Int] -> ReplacementMap -> ReplacementMap
-setReplacing f poss (RM (sig, m)) = RM (sig, Map.alter alter f m)
+setReplacing f poss m = Map.alter alter f m
   where alter (Just s) = Just $ foldl (flip ISet.insert) s poss
         alter Nothing = Just $ ISet.fromList poss

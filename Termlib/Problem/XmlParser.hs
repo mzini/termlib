@@ -31,6 +31,7 @@ import Text.XML.HaXml.Parse
 import Text.XML.HaXml.Posn
 import Termlib.FunctionSymbol (Signature, Symbol, emptySignature)
 import Termlib.Problem
+import qualified Termlib.ContextSensitive as CS
 import Termlib.Problem.ParseErrors (ParseError (..), ParseWarning (..))
 import Termlib.Term (Term(..))
 import qualified Termlib.Trs as Trs
@@ -84,9 +85,11 @@ problemFromString str = case evalRWS run Nothing V.emptyVariables of
         run = runErrorT $ runParser $ parseProblem doc
 
 parseProblem :: Content i -> Parser Problem
-parseProblem doc = do (symMap, sig) <- parseOne errSig parseSignature $ tag "problem" /> tag "trs" /> tag "signature" $ doc
+parseProblem doc = do (symMap, sig, rm) <- parseOne errSig parseSignature $ tag "problem" /> tag "trs" /> tag "signature" $ doc
                       (strict,weak, vars) <- parseOne errTrs (parseTrs sig symMap) $ tag "problem" /> tag "trs" /> tag "rules" $ doc
-                      strategy <- parseStrategy doc
+                      strategy <- if rm == CS.empty 
+                                  then parseStrategy doc
+                                  else return $ ContextSensitive rm
                       let both    =  strict `Trs.union` weak
                           constrs = Trs.definedSymbols both
                           defs    = Trs.constructors both
@@ -97,22 +100,30 @@ parseProblem doc = do (symMap, sig) <- parseOne errSig parseSignature $ tag "pro
   where errSig = throwError $ UnknownError "Error when parsing signature"
         errTrs = throwError $ UnknownError "Error when parsing trs"
 
-parseSignature :: Content i -> Parser (SymMap, Signature)
-parseSignature = liftM mkSig . parseSymbolList
-  where mkSig attribs = Signature.runSignature (foldl mk (return Map.empty) attribs) emptySignature 
-        mk m attrib  = do map <- m 
-                          sym <- F.fresh attrib
-                          return $ Map.insert (F.symIdent attrib) sym map
-        parseSymbolList :: MonadError ParseError m => Content i -> m [F.Attributes]
+parseSignature :: Content i -> Parser (SymMap, Signature, ReplacementMap)
+parseSignature cont = do ((mp, rm), sig) <- mkSig `liftM` parseSymbolList cont
+                         return (mp, sig, rm)
+  where mkSig attribs = Signature.runSignature (foldl mk (return (Map.empty, CS.empty)) attribs) emptySignature
+        mk m (attrib, mrp)  = do (mp, rm) <- m 
+                                 f <- F.fresh attrib
+                                 let rm' = case mrp of { Just is -> CS.setReplacing f is rm; _ -> rm }
+                                 return $ (Map.insert (F.symIdent attrib) f mp, rm')
+        parseSymbolList :: MonadError ParseError m => Content i -> m [(F.Attributes, Maybe [Int])]
         parseSymbolList doc = return $ map getAttribs $ getSymbols doc
           where getSymbols = tag "signature" /> tag "funcsym"
-                getAttribs c = F.defaultAttribs (vtg "name") (read $ vtg "arity")
-                  where vtg t = verbatim $ tag "funcsym" /> tag t /> txt $ c
+                getAttribs c = (attribs, mrp)
+                  where vtg t   = verbatim $ tag "funcsym" /> tag t /> txt $ c
+                        attribs = F.defaultAttribs (vtg "name") (read $ vtg "arity")
+                        mrp     = case tag "funcsym" /> tag "replacementmap" $ c of 
+                                    [] -> Nothing 
+                                    _   -> Just $ map (read . verbatim) entries
+                            where entries = cElems `o` (tag "funcsym" /> tag "replacementmap" /> tag "entry" /> txt) $ c
+
 
 parseStrategy :: Content i -> Parser Strategy
 parseStrategy doc = case verbatim $ tag "problem" /> tag "strategy" /> txt $ doc of
                       "INNERMOST" -> return Innermost
-                      "OUTERMOST" -> warn (PartiallySupportedStrategy "OUTERMOST") >> return Full
+                      "OUTERMOST" -> return Outermost
                       "FULL" -> return Full
                       a -> throwError $ UnsupportedStrategy a
 
