@@ -92,7 +92,7 @@ onSignature m = do prob <- getState
 getSymbol :: F.FunctionName -> F.Arity -> TPDBParser F.Symbol
 getSymbol name arity = onSignature m 
     where m = do sig <- Signature.getSignature 
-                 let setarity = undefined
+                 let setarity (Just p) = Just (p {F.symArity = arity})
                  case F.symbol name sig of 
                    Just sym -> do Signature.modifySignature $ Signature.alterAttributes setarity sym
                                   return sym
