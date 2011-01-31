@@ -51,7 +51,8 @@ data Strategy = Innermost
               | ContextSensitive ReplacementMap
               | Outermost deriving (Eq, Show)
 
-data StartTerms = BasicTerms (Set Symbol) (Set Symbol)
+data StartTerms = BasicTerms {defineds :: Set Symbol
+                             , constrs :: Set Symbol}
                 | TermAlgebra 
                   deriving (Eq, Show)
 
