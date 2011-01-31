@@ -27,6 +27,7 @@ module Termlib.Problem
   , onProblem
   , strictTrs
   , weakTrs
+  , strictWeakTrs
   , withStandardProblem
   , withDpProblem
   , withRelativeProblem
@@ -144,7 +145,8 @@ weakTrs prob = case relation prob of
                    DP       _  trs -> trs
                    Relative _  trs -> trs
 
-
+strictWeakTrs :: Problem -> Trs 
+strictWeakTrs prob = strictTrs prob `Trs.union` weakTrs prob
 
 measureName :: Problem -> Doc
 measureName p = ms (strategy p) <+> mn (relation p) <+> mt (startTerms p) <> text "-complexity"

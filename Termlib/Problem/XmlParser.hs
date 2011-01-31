@@ -23,11 +23,9 @@ import Control.Monad.Error
 import Control.Monad.RWS.Lazy
 import qualified Data.Map as Map
 import Data.Map (Map)
-import qualified Data.Set as Set
 import Data.Set (Set)
 import Data.Maybe (fromMaybe)
 import Text.XML.HaXml
-import Text.XML.HaXml.Parse
 import Text.XML.HaXml.Posn
 import Termlib.FunctionSymbol (Signature, Symbol, emptySignature)
 import Termlib.Problem
@@ -53,16 +51,16 @@ liftP ::  RWS (Maybe SymMap) [ParseWarning] V.Variables a -> Parser a
 liftP m = P $ lift m
 
 sym :: String -> Parser F.Symbol
-sym name = do ms <- liftP $ ask >>= return . Map.lookup name . fromMaybe (error "reading symbol befor parsing signature!") 
-              case ms of 
-                Just s -> return s
-                Nothing  -> throwError $ SymbolNotInSignature name
+sym symname = do ms <- liftP $ ask >>= return . Map.lookup symname . fromMaybe (error "reading symbol befor parsing signature!") 
+                 case ms of 
+                   Just s -> return s
+                   Nothing  -> throwError $ SymbolNotInSignature symname
 
 var :: String -> Parser V.Variable
-var name = liftP $ do vars <- get
-                      let (v, vars') = Signature.runSignature (V.maybeFresh name) vars
-                      put vars'
-                      return v
+var varname = liftP $ do vars <- get
+                         let (v, vars') = Signature.runSignature (V.maybeFresh varname) vars
+                         put vars'
+                         return v
 
 warn :: ParseWarning -> Parser ()
 warn a = liftP $ tell [a]
@@ -91,12 +89,12 @@ parseProblem doc = do (symMap, sig, rm) <- parseOne errSig parseSignature $ tag 
                                   then parseStrategy doc
                                   else return $ ContextSensitive rm
                       let both    =  strict `Trs.union` weak
-                          constrs = Trs.definedSymbols both
+                          cons    = Trs.definedSymbols both
                           defs    = Trs.constructors both
-                      startTerms <- parseStartTerms defs constrs doc
+                      st <- parseStartTerms defs cons doc
                       case Trs.isEmpty weak of  
-                        True -> return $ standardProblem startTerms strategy strict vars sig
-                        False -> return $ relativeProblem startTerms strategy strict weak vars sig
+                        True -> return $ standardProblem st strategy strict vars sig
+                        False -> return $ relativeProblem st strategy strict weak vars sig
   where errSig = throwError $ UnknownError "Error when parsing signature"
         errTrs = throwError $ UnknownError "Error when parsing trs"
 
@@ -129,9 +127,9 @@ parseStrategy doc = case verbatim $ tag "problem" /> tag "strategy" /> txt $ doc
 
 -- MA:TODO: verify
 parseStartTerms :: Set F.Symbol -> Set F.Symbol -> Content i -> Parser StartTerms
-parseStartTerms defs constrs doc = case tag "problem" /> tag "startterm" /> txt $ doc of
+parseStartTerms defs cons doc = case tag "problem" /> tag "startterm" /> txt $ doc of
                                      [] -> return TermAlgebra
-                                     _ -> return $ BasicTerms defs constrs
+                                     _ -> return $ BasicTerms {defineds = defs, constrs = cons}
                                      -- "full" -> return $ TermAlgebra
                                      -- s -> warn (PartiallySupportedStartTerms s) >> return TermAlgebra
                                
@@ -139,7 +137,7 @@ parseTrs :: Signature -> SymMap -> Content i -> Parser (Trs,Trs, Variables)
 parseTrs sig syms doc = P $ local (const $ Just syms) $ runParser $ parseRules sig doc
 
 parseRules :: Signature -> Content i -> Parser (Trs,Trs, Variables)
-parseRules sig doc = do strict <- mapM parseRule $ tag "rules" /> tag "rule" $ doc
+parseRules _   doc = do strict <- mapM parseRule $ tag "rules" /> tag "rule" $ doc
                         weak <- mapM parseRule $ tag "rules" /> tag "relrules" /> tag "rule" $ doc
                         vars <- liftP get
                         return (Trs.fromRules strict, Trs.fromRules weak, vars)       
