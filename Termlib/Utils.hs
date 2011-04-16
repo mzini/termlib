@@ -158,7 +158,7 @@ ifM b t e = do g <- b
 a $++$ b = a $+$ text "" $+$ b
 
 paragraph :: String -> Doc
-paragraph s = fsep [text w | w <- words s]
+paragraph s = vcat [ fsep [text w | w <- words l] | l <- lines s]
 
 underline :: Doc -> Doc
 underline p = p $+$ text (take (length $ show p) $ repeat '-')
