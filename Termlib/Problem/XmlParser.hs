@@ -85,16 +85,21 @@ problemFromString str = case evalRWS run Nothing V.emptyVariables of
 parseProblem :: Content i -> Parser Problem
 parseProblem doc = do (symMap, sig, rm) <- parseOne errSig parseSignature $ tag "problem" /> tag "trs" /> tag "signature" $ doc
                       (strict,weak, vars) <- parseOne errTrs (parseTrs sig symMap) $ tag "problem" /> tag "trs" /> tag "rules" $ doc
-                      strategy <- if rm == CS.empty 
-                                  then parseStrategy doc
-                                  else return $ ContextSensitive rm
+                      strat <- if rm == CS.empty 
+                               then parseStrategy doc
+                               else return $ ContextSensitive rm
                       let both    =  strict `Trs.union` weak
                           cons    = Trs.definedSymbols both
                           defs    = Trs.constructors both
                       st <- parseStartTerms defs cons doc
-                      case Trs.isEmpty weak of  
-                        True -> return $ standardProblem st strategy strict vars sig
-                        False -> return $ relativeProblem st strategy strict weak vars sig
+                      return $ Problem { startTerms = st
+                                       , strategy   = strat
+                                       , variables  = vars
+                                       , signature  = sig
+                                       , strictDPs  = Trs.empty 
+                                       , strictTRS  = strict
+                                       , weakDPs    = Trs.empty
+                                       , weakTRS    = weak} 
   where errSig = throwError $ UnknownError "Error when parsing signature"
         errTrs = throwError $ UnknownError "Error when parsing trs"
 

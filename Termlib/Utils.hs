@@ -21,7 +21,7 @@ module Termlib.Utils where
 
 -- import Control.Monad.Identity ()
 import Text.PrettyPrint.HughesPJ
-import Data.List (transpose, intersperse, sortBy)
+import Data.List (transpose)
 import qualified Control.Monad.State.Lazy as State
 import qualified Data.Map as Map
 import qualified Data.Set as Set

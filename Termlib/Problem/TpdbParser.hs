@@ -45,33 +45,32 @@ problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem s
                             (Left e,             _    ) -> Left e
                             (Right (Left e),     _    ) -> Left $ ParsecParseError e
                             (Right (Right prob), warns) -> Right (prob{startTerms = finStartTerms prob}, warns)
-    where stdprob = standardProblem TermAlgebra Full T.empty V.emptyVariables F.emptySignature
-          finStartTerms = onProblem finStd finDp finRel
-          finStd sts _ trs _ _         = mkStartTerms sts (T.definedSymbols trs) (T.constructors trs)
-          finDp sts _ strict weak _ _  = mkStartTerms sts (T.definedSymbols strict) (T.constructors weak)
-          finRel sts _ strict weak _ _ = mkStartTerms sts (T.definedSymbols both) (T.constructors both)
-              where both = strict `T.union` weak
+    where stdprob = Problem { startTerms = TermAlgebra
+                            , strategy   = Full
+                            , variables  = V.emptyVariables
+                            , signature  = F.emptySignature
+                            , strictDPs  = T.empty 
+                            , strictTRS  = T.empty
+                            , weakDPs    = T.empty
+                            , weakTRS    = T.empty} 
+          finStartTerms prob = mkStartTerms (startTerms prob) (T.definedSymbols rs) (T.constructors rs)
+              where rs = allRules prob
           mkStartTerms TermAlgebra _ _ = TermAlgebra
           mkStartTerms (BasicTerms _ _) d c = BasicTerms d c 
 
 parseProblem :: TPDBParser Problem
 parseProblem = speclist >> getState
 
-modifyRelation :: (Relation -> Relation) -> TPDBParser ()
-modifyRelation f = do prob <- getState
-                      putState $ prob {relation = f $ relation prob}
+modifyProblem :: (Problem -> Problem) -> TPDBParser ()
+modifyProblem f = getState >>= (putState . f)
 
 modifyStrictTrs :: (T.Trs -> T.Trs) -> TPDBParser ()
-modifyStrictTrs f = modifyRelation f'
-  where f' (Standard trs) = Standard $ f trs
-        f' (Relative strict weak) = Relative (f strict) weak
-        f' (DP dps trs) = DP (f dps) trs
+modifyStrictTrs f = modifyProblem f'
+  where f' prob = prob { strictTRS = f $ strictTRS prob }
 
 modifyWeakTrs :: (T.Trs -> T.Trs) -> TPDBParser ()
-modifyWeakTrs f = modifyRelation f'
-  where f' (Standard trs) = Relative trs $ f T.empty
-        f' (Relative strict weak) = Relative strict (f weak)
-        f' (DP dps trs) = DP dps (f trs)
+modifyWeakTrs f = modifyProblem f'
+  where f' prob = prob { weakTRS = f $ weakTRS prob }
 
 setStartTerms :: StartTerms -> TPDBParser ()
 setStartTerms st = do prob <- getState

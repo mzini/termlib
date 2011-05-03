@@ -18,7 +18,7 @@ along with the Haskell Term Rewriting Library.  If not, see <http://www.gnu.org/
 module Termlib.Repl where
 import qualified Termlib.Problem.Parser as PParser
 import qualified Termlib.Term.Parser as TParser
-import Termlib.Problem (Problem, strictTrs, variables, signature)
+import Termlib.Problem (Problem, strictTRS, variables, signature)
 import Termlib.Trs (Trs)
 import Termlib.Term (Term)
 import Control.Monad (liftM)
@@ -31,7 +31,7 @@ loadProblem input = do parsed <- PParser.problemFromFile input
                          
 loadTrs :: String -> IO Trs
 loadTrs input = do p <- loadProblem input
-                   return $ strictTrs p
+                   return $ strictTRS p
 
 termFromString :: Problem -> String -> Term
 termFromString prob str = case TParser.termFromString (signature prob) str of 
