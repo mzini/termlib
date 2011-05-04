@@ -50,11 +50,11 @@ problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem s
                             , variables  = V.emptyVariables
                             , signature  = F.emptySignature
                             , strictDPs  = T.empty 
-                            , strictTRS  = T.empty
+                            , strictTrs  = T.empty
                             , weakDPs    = T.empty
-                            , weakTRS    = T.empty} 
+                            , weakTrs    = T.empty} 
           finStartTerms prob = mkStartTerms (startTerms prob) (T.definedSymbols rs) (T.constructors rs)
-              where rs = allRules prob
+              where rs = allComponents prob
           mkStartTerms TermAlgebra _ _ = TermAlgebra
           mkStartTerms (BasicTerms _ _) d c = BasicTerms d c 
 
@@ -66,11 +66,11 @@ modifyProblem f = getState >>= (putState . f)
 
 modifyStrictTrs :: (T.Trs -> T.Trs) -> TPDBParser ()
 modifyStrictTrs f = modifyProblem f'
-  where f' prob = prob { strictTRS = f $ strictTRS prob }
+  where f' prob = prob { strictTrs = f $ strictTrs prob }
 
 modifyWeakTrs :: (T.Trs -> T.Trs) -> TPDBParser ()
 modifyWeakTrs f = modifyProblem f'
-  where f' prob = prob { weakTRS = f $ weakTRS prob }
+  where f' prob = prob { weakTrs = f $ weakTrs prob }
 
 setStartTerms :: StartTerms -> TPDBParser ()
 setStartTerms st = do prob <- getState

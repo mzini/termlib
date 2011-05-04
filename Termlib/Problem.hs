@@ -20,11 +20,11 @@ module Termlib.Problem
   , StartTerms(..)
   , Problem(..)
   , ReplacementMap
-  , weakRules
-  , strictRules
-  , allRules
-  , dpRules
-  , trsRules
+  , weakComponents
+  , strictComponents
+  , allComponents
+  , dpComponents
+  , trsComponents
   , isDPProblem
   , measureName 
   , wellFormed)
@@ -56,38 +56,38 @@ data Problem = Problem { startTerms  :: StartTerms
                        , variables   :: Variables
                        , signature   :: Signature
                        , strictDPs   :: Trs 
-                       , strictTRS   :: Trs
+                       , strictTrs   :: Trs
                        , weakDPs     :: Trs
-                       , weakTRS     :: Trs
+                       , weakTrs     :: Trs
                        } 
                deriving (Eq, Show)
 
-weakRules :: Problem -> Trs
-weakRules prob = weakDPs prob `Trs.union` weakTRS prob
+weakComponents :: Problem -> Trs
+weakComponents prob = weakDPs prob `Trs.union` weakTrs prob
 
-strictRules :: Problem -> Trs
-strictRules prob = strictDPs prob `Trs.union` strictTRS prob
+strictComponents :: Problem -> Trs
+strictComponents prob = strictDPs prob `Trs.union` strictTrs prob
 
-allRules :: Problem -> Trs
-allRules prob = weakRules prob `Trs.union` strictRules prob
+allComponents :: Problem -> Trs
+allComponents prob = weakComponents prob `Trs.union` strictComponents prob
 
-dpRules :: Problem -> Trs
-dpRules prob = strictDPs prob `Trs.union` weakDPs prob
+dpComponents :: Problem -> Trs
+dpComponents prob = strictDPs prob `Trs.union` weakDPs prob
 
-trsRules :: Problem -> Trs
-trsRules prob = strictTRS prob `Trs.union` weakTRS prob
+trsComponents :: Problem -> Trs
+trsComponents prob = strictTrs prob `Trs.union` weakTrs prob
 
 wellFormed :: Problem -> Bool
-wellFormed = Trs.wellFormed . allRules
+wellFormed = Trs.wellFormed . allComponents
 
 isDPProblem :: Problem -> Bool
-isDPProblem = not . Trs.isEmpty . dpRules
+isDPProblem = not . Trs.isEmpty . dpComponents
 
 instance PrettyPrintable Problem where 
   pprint prob = ppTrs "Strict DPs" (strictDPs prob)
-                $+$ ppTrs "Strict TRS" (strictTRS prob)
+                $+$ ppTrs "Strict Trs" (strictTrs prob)
                 $+$ ppTrs "Weak DPs"   (weakDPs prob)
-                $+$ ppTrs "Weak TRS"   (weakTRS prob)
+                $+$ ppTrs "Weak Trs"   (weakTrs prob)
                 $+$ block "StartTerms" (ppStartTerms (startTerms prob))
                 $+$ block "Strategy"   (ppStrategy (strategy prob))
       where sig           = signature prob

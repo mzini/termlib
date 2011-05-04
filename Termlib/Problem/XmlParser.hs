@@ -97,9 +97,9 @@ parseProblem doc = do (symMap, sig, rm) <- parseOne errSig parseSignature $ tag 
                                        , variables  = vars
                                        , signature  = sig
                                        , strictDPs  = Trs.empty 
-                                       , strictTRS  = strict
+                                       , strictTrs  = strict
                                        , weakDPs    = Trs.empty
-                                       , weakTRS    = weak} 
+                                       , weakTrs    = weak} 
   where errSig = throwError $ UnknownError "Error when parsing signature"
         errTrs = throwError $ UnknownError "Error when parsing trs"
 
