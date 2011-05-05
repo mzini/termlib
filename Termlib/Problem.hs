@@ -26,7 +26,9 @@ module Termlib.Problem
   , dpComponents
   , trsComponents
   , isDPProblem
-  , measureName 
+  , mapRules
+  , measureName
+  , pprintComponents
   , wellFormed)
 where
 
@@ -58,8 +60,7 @@ data Problem = Problem { startTerms  :: StartTerms
                        , strictDPs   :: Trs 
                        , strictTrs   :: Trs
                        , weakDPs     :: Trs
-                       , weakTrs     :: Trs
-                       } 
+                       , weakTrs     :: Trs } 
                deriving (Eq, Show)
 
 weakComponents :: Problem -> Trs
@@ -83,24 +84,33 @@ wellFormed = Trs.wellFormed . allComponents
 isDPProblem :: Problem -> Bool
 isDPProblem = not . Trs.isEmpty . dpComponents
 
+mapRules :: (Trs -> Trs) -> Problem -> Problem
+mapRules f prob = prob { strictDPs = f $ strictDPs prob
+                       , strictTrs = f $ strictTrs prob
+                       , weakDPs   = f $ weakDPs prob
+                       , weakTrs   = f $ weakTrs prob }
+
 instance PrettyPrintable Problem where 
-  pprint prob = ppTrs "Strict DPs" (strictDPs prob)
-                $+$ ppTrs "Strict Trs" (strictTrs prob)
-                $+$ ppTrs "Weak DPs"   (weakDPs prob)
-                $+$ ppTrs "Weak Trs"   (weakTrs prob)
+  pprint prob = pprintComponents prob
                 $+$ block "StartTerms" (ppStartTerms (startTerms prob))
                 $+$ block "Strategy"   (ppStrategy (strategy prob))
-      where sig           = signature prob
-            vars          = variables prob
-            block h doc   = hang (text (h ++ ":")) 2 $ doc
-            ppTrs n rules = block n $ pprint (rules, sig, vars)
-            ppStartTerms TermAlgebra{} = text "all"
+      where ppStartTerms TermAlgebra{} = text "all"
             ppStartTerms BasicTerms{}  = text "basic terms"
             ppStrategy ContextSensitive{} = text "context sensitive"
             ppStrategy Full{}             = text "none"
             ppStrategy Innermost{}        = text "innermost"
             ppStrategy Outermost{}        = text "outermost"
 
+pprintComponents :: Problem -> Doc
+pprintComponents prob = 
+    ppTrs "Strict DPs" (strictDPs prob)
+    $+$ ppTrs "Strict Trs" (strictTrs prob)
+    $+$ ppTrs "Weak DPs"   (weakDPs prob)
+    $+$ ppTrs "Weak Trs"   (weakTrs prob)
+    where sig           = signature prob
+          vars          = variables prob
+          ppTrs n rules = block n $ pprint (rules, sig, vars)
+           
 measureName :: Problem -> Doc
 measureName p = ms (strategy p) <+> mt (startTerms p) <> text "-complexity"
     where ms Innermost = text "innermost"

@@ -172,6 +172,9 @@ pprintInt = text . show
 pprintChar :: Char -> Doc
 pprintChar c = text [c]
 
+block :: String -> Doc -> Doc
+block h doc   = hang (text (h ++ ":")) 2 $ doc
+
 
 -- * Misc
 class Enumerateable a where
