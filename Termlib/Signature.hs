@@ -80,10 +80,11 @@ cardinality :: Signature sym attribs -> Int
 cardinality (Signature (_, c)) = c
 
 fresh :: Enumerateable sym => attribs -> SignatureMonad sym attribs sym
-fresh attribs = do (invEnum . cardinality) `liftM` modifySignature f
-  where f (Signature (sig, counter)) = Signature (sig', counter')
-          where counter' = counter + 1
-                sig' = IntMap.insert counter' attribs sig
+fresh attribs = do Signature (sig,cnt) <- SignatureMonad State.get
+                   let cnt' = cnt + 1 
+                       sig' = IntMap.insert cnt' attribs sig
+                   SignatureMonad $ State.put $ Signature (sig', cnt')
+                   return $ invEnum cnt'
 
 maybeFresh :: (Enumerateable sym, Eq attribs) => attribs -> SignatureMonad sym attribs sym
 maybeFresh attribs = do sig <- getSignature 
