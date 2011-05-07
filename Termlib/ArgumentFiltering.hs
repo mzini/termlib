@@ -23,7 +23,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Text.PrettyPrint.HughesPJ hiding (empty)
 import qualified Text.PrettyPrint.HughesPJ as PP
-import Termlib.FunctionSymbol (Signature, Symbol, emptySignature, arity, maybeFresh, defaultAttribs, symbolName, SignatureMonad)
+import Termlib.FunctionSymbol (Signature, Symbol, emptySignature, arity, maybeFresh, defaultAttribs, symbolName, SignatureMonad, getAttributes, Attributes (..))
 import Termlib.Utils (PrettyPrintable(..))
 import Termlib.Trs (fromRules, Trs, rules)
 import Termlib.Signature (runSignature,  getSignature)
@@ -66,5 +66,5 @@ apply trs af = fromRules `liftM` mapM filterRule (rules trs)
                                                    ts'' <- mapM filter ts';
                                                    return $ Fun f' ts''}
                                     where ts'        = snd $ foldl (\ (i,ts') ti -> if Set.member i is then (i+1,ti:ts') else (i+1,ts))  (1,[]) ts
-                                          mkFreshSym = do sig <- getSignature 
-                                                          maybeFresh $ defaultAttribs (symbolName sig f) (length ts')
+                                          mkFreshSym = do attribs <- getAttributes f
+                                                          maybeFresh $ attribs { symArity = Set.size is}

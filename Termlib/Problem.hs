@@ -82,7 +82,8 @@ wellFormed :: Problem -> Bool
 wellFormed = Trs.wellFormed . allComponents
 
 isDPProblem :: Problem -> Bool
-isDPProblem = not . Trs.isEmpty . dpComponents
+isDPProblem prob = not (Trs.isEmpty $ dpComponents prob)
+                   && case startTerms prob of BasicTerms{} -> True; _ -> False
 
 mapRules :: (Trs -> Trs) -> Problem -> Problem
 mapRules f prob = prob { strictDPs = f $ strictDPs prob
