@@ -19,6 +19,7 @@ along with the Haskell Term Rewriting Library.  If not, see <http://www.gnu.org/
 module Termlib.Trs.PrettyPrint where
 
 import Termlib.Trs hiding (empty)
+import qualified Termlib.Trs as Trs
 import qualified Termlib.Rule as R
 import qualified Termlib.Variable as V
 import Termlib.Term
@@ -39,6 +40,12 @@ instance PrettyPrintable Trs where
 
 instance PrettyPrintable (Trs, Signature, Variables) where 
     pprint (trs, sig, var) = pprintTrs (\ r -> pprint (r, sig, var)) (rules trs)
+
+
+pprintNamedTrs :: Signature -> Variables -> String -> Trs -> Doc
+pprintNamedTrs sig vars n trs  
+    | Trs.isEmpty trs = empty 
+    | otherwise       = block n $ pprint (trs, sig, vars)
 
 instance PrettyPrintable (R.Rule, Signature, Variables) where
     pprint ((R.Rule l r), sig, var) = fsep [pprint (l, sig, var), text "->", pprint (r, sig, var)]

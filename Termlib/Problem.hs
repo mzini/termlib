@@ -35,7 +35,7 @@ where
 import Data.Set (Set)
 
 import qualified Termlib.Trs as Trs
-import Termlib.Trs.PrettyPrint()
+import Termlib.Trs.PrettyPrint (pprintNamedTrs)
 import Termlib.Trs (Trs) 
 import Termlib.Variable (Variables)
 import Termlib.FunctionSymbol (Signature, Symbol)
@@ -110,7 +110,7 @@ pprintComponents prob =
     $+$ ppTrs "Weak Trs"   (weakTrs prob)
     where sig           = signature prob
           vars          = variables prob
-          ppTrs n rules = block n $ pprint (rules, sig, vars)
+          ppTrs = pprintNamedTrs sig vars
            
 measureName :: Problem -> Doc
 measureName p = ms (strategy p) <+> mt (startTerms p) <> text "-complexity"

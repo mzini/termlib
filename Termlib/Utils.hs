@@ -161,7 +161,11 @@ paragraph :: String -> Doc
 paragraph s = vcat [ fsep [text w | w <- words l] | l <- lines s]
 
 underline :: Doc -> Doc
-underline p = p $+$ text (take (length $ show p) $ repeat '-')
+underline = underlineWith "-"
+
+underlineWith :: String -> Doc -> Doc
+underlineWith c p = p $+$ text (take (length $ show p) $ cs)
+    where cs = c ++ cs
 
 enumerated :: [Doc] -> [Doc] -> Doc
 enumerated indices ds = vcat [ i <> text ")" <+> d | d <- ds | i <- indices]
@@ -175,6 +179,8 @@ pprintChar c = text [c]
 block :: String -> Doc -> Doc
 block h doc   = hang (text (h ++ ":")) 2 $ doc
 
+qtext :: String -> Doc
+qtext = quotes . text
 
 -- * Misc
 class Enumerateable a where
