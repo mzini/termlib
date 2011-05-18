@@ -58,7 +58,8 @@ import Data.Set (Set)
 import qualified Data.Maybe as Maybe
 import Text.PrettyPrint.HughesPJ hiding (empty)
 
-data Rule = Rule {lhs :: Term, rhs :: Term} deriving Show
+data Rule = Rule {lhs :: Term, rhs :: Term}
+  deriving (Show)
 
 data Strictness = StrictRule | WeakRule
 
@@ -81,11 +82,16 @@ variables (Rule l r) = T.variables l `Set.union` T.variables r
 functionSymbols :: Rule -> Set Symbol
 functionSymbols (Rule l r) = T.functionSymbols l `Set.union` T.functionSymbols r
 
+canonise :: Rule -> Rule
+canonise (Rule l r) = Rule l' r'
+  where (l',vm) = T.canonise l Map.empty
+        r'       = fst $ T.canonise r vm
+        
 instance Eq Rule where
-  r1 == r2 = lhs1 == lhs2 && canonrhs vm1 r1 == canonrhs vm2 r2
-    where (lhs1, vm1) = T.canonise (lhs r1) Map.empty
-          (lhs2, vm2) = T.canonise (lhs r2) Map.empty
-          canonrhs vm = fst . (`T.canonise` vm) . rhs
+  r1 == r2 = canonise r1 == canonise r2
+
+instance Ord Rule where
+  r1 `compare` r2 = canonise r1 `compare` canonise r2
 
 rewrites :: Term -> Term -> Rule -> Bool
 rewrites s@(T.Fun f xs) t@(T.Fun g ys) r
