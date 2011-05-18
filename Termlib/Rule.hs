@@ -76,6 +76,7 @@ fromPair (l,r) = Rule l r
 toPair :: Rule -> (Term, Term)
 toPair (Rule l r) = (l,r)
 
+
 variables :: Rule -> Set Variable
 variables (Rule l r) = T.variables l `Set.union` T.variables r
 
@@ -88,10 +89,17 @@ canonise (Rule l r) = Rule l' r'
         r'       = fst $ T.canonise r vm
         
 instance Eq Rule where
-  r1 == r2 = canonise r1 == canonise r2
+  rule1 == rule2 = l1 == l2 && r1 == r2
+      where (Rule l1 r1) = canonise rule1
+            (Rule l2 r2) = canonise rule2
+
 
 instance Ord Rule where
-  r1 `compare` r2 = canonise r1 `compare` canonise r2
+  rule1 `compare` rule2 = case l1 `compare` l2 of 
+                             EQ -> r1 `compare` r2
+                             c  -> c
+    where (Rule l1 r1) = canonise rule1
+          (Rule l2 r2) = canonise rule2
 
 rewrites :: Term -> Term -> Rule -> Bool
 rewrites s@(T.Fun f xs) t@(T.Fun g ys) r
