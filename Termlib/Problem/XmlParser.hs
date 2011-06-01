@@ -89,8 +89,8 @@ parseProblem doc = do (symMap, sig, rm) <- parseOne errSig parseSignature $ tag 
                                then parseStrategy doc
                                else return $ ContextSensitive rm
                       let both    =  strict `Trs.union` weak
-                          cons    = Trs.definedSymbols both
-                          defs    = Trs.constructors both
+                          cons    = Trs.constructors both
+                          defs    = Trs.definedSymbols both
                       st <- parseStartTerms defs cons doc
                       return $ Problem { startTerms = st
                                        , strategy   = strat
@@ -130,14 +130,11 @@ parseStrategy doc = case verbatim $ tag "problem" /> tag "strategy" /> txt $ doc
                       "FULL" -> return Full
                       a -> throwError $ UnsupportedStrategy a
 
--- MA:TODO: verify
 parseStartTerms :: Set F.Symbol -> Set F.Symbol -> Content i -> Parser StartTerms
-parseStartTerms defs cons doc = case tag "problem" /> tag "startterm" /> txt $ doc of
-                                     [] -> return TermAlgebra
-                                     _ -> return $ BasicTerms {defineds = defs, constrs = cons}
-                                     -- "full" -> return $ TermAlgebra
-                                     -- s -> warn (PartiallySupportedStartTerms s) >> return TermAlgebra
-                               
+parseStartTerms defs cons doc = case tag "problem" /> tag "startterm" /> tag "constructor-based" $ doc of
+                                     []              -> return TermAlgebra
+                                     _               -> return $ BasicTerms {defineds = defs, constrs = cons}
+
 parseTrs :: Signature -> SymMap -> Content i -> Parser (Trs,Trs, Variables)
 parseTrs sig syms doc = P $ local (const $ Just syms) $ runParser $ parseRules sig doc
 
