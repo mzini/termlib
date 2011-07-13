@@ -61,7 +61,7 @@ data Problem = Problem { startTerms  :: StartTerms
                        , strictTrs   :: Trs
                        , weakDPs     :: Trs
                        , weakTrs     :: Trs } 
-               deriving (Eq, Show)
+               deriving (Eq)
 
 weakComponents :: Problem -> Trs
 weakComponents prob = weakDPs prob `Trs.union` weakTrs prob
