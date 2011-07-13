@@ -64,6 +64,12 @@ union :: Trs -> Trs -> Trs
 unions :: [Trs] -> Trs
 unions = foldl union empty
 
+intersect :: Trs -> Trs -> Trs
+trs1 `intersect` (Trs rules2) = Trs $ filter (member trs1) rules2
+    
+member :: Trs -> Rule -> Bool 
+member (Trs trs) r = any ((==) r) trs
+
 (\\) :: Trs -> Trs -> Trs
 (Trs trs1) \\ (Trs trs2) = Trs $ trs1 List.\\ trs2
 
