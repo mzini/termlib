@@ -19,7 +19,9 @@ module Termlib.Problem
   ( Strategy(..)
   , StartTerms(..)
   , Problem(..)
+  , Ruleset(..)
   , ReplacementMap
+  , ruleset
   , weakComponents
   , strictComponents
   , allComponents
@@ -53,6 +55,12 @@ data StartTerms = BasicTerms {defineds :: Set Symbol
                 | TermAlgebra 
                   deriving (Eq, Show)
 
+
+data Ruleset = Ruleset { sdp  :: Trs
+                       , wdp  :: Trs
+                       , strs :: Trs
+                       , wtrs :: Trs }
+
 data Problem = Problem { startTerms  :: StartTerms
                        , strategy    :: Strategy
                        , variables   :: Variables
@@ -62,6 +70,12 @@ data Problem = Problem { startTerms  :: StartTerms
                        , weakDPs     :: Trs
                        , weakTrs     :: Trs } 
                deriving (Eq)
+
+ruleset :: Problem -> Ruleset
+ruleset prob = Ruleset { sdp  = strictDPs prob
+                       , wdp  = weakDPs prob
+                       , strs = strictTrs prob
+                       , wtrs = weakTrs prob }
 
 weakComponents :: Problem -> Trs
 weakComponents prob = weakDPs prob `Trs.union` weakTrs prob
