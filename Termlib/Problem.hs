@@ -22,6 +22,7 @@ module Termlib.Problem
   , Ruleset(..)
   , ReplacementMap
   , ruleset
+  , emptyRuleset
   , weakComponents
   , strictComponents
   , allComponents
@@ -76,6 +77,9 @@ ruleset prob = Ruleset { sdp  = strictDPs prob
                        , wdp  = weakDPs prob
                        , strs = strictTrs prob
                        , wtrs = weakTrs prob }
+
+emptyRuleset :: Ruleset 
+emptyRuleset = Ruleset Trs.empty Trs.empty Trs.empty Trs.empty
 
 weakComponents :: Problem -> Trs
 weakComponents prob = weakDPs prob `Trs.union` weakTrs prob
