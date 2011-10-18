@@ -19,15 +19,17 @@ along with the Haskell Term Rewriting Library.  If not, see <http://www.gnu.org/
 
 module Termlib.Precedence where
 import Termlib.FunctionSymbol 
-import Termlib.Signature hiding (Signature)
 import Text.PrettyPrint.HughesPJ
 import Termlib.Utils (PrettyPrintable(..))
 import Data.Typeable 
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+import Data.List (find)
 
-data Order = Symbol :>: Symbol 
-           | Symbol :~: Symbol deriving (Show, Eq, Ord, Typeable)
+data Order b = b :>: b
+             | b :~: b deriving (Show, Eq, Ord, Typeable)
 
-newtype Precedence = Precedence (Signature,[Order]) deriving Show
+newtype Precedence = Precedence (Signature,[Order Symbol]) deriving Show
 
 instance PrettyPrintable Precedence where 
   pprint (Precedence (_, [])) = text "empty"
@@ -35,12 +37,25 @@ instance PrettyPrintable Precedence where
     where pp (f :>: g) = pprint (f,sig) <+> text ">" <+> pprint (g,sig)
           pp (f :~: g) =  pprint (f,sig) <+> text "~" <+> pprint (g,sig)
 
-precedence :: Signature -> [Order] -> Precedence
+precedence :: Signature -> [Order Symbol] -> Precedence
 precedence = curry Precedence 
 
 empty :: Signature -> Precedence
 empty sig = precedence sig []
 
-insert :: Order -> Precedence -> Precedence
+insert :: Order Symbol -> Precedence -> Precedence
 insert e (Precedence (sig, l)) = Precedence (sig, e : l)
 
+ranks :: Precedence -> Map.Map Symbol Int
+ranks (Precedence (sig, l)) = Map.fromList [(f,depthOf f) | f <- Set.toList $ symbols sig ]
+    where eclassOf f = case find (\ cs -> f `Set.member` cs) eclasses of 
+                         Nothing -> f
+                         Just cs -> Set.findMin cs
+              where eclasses = foldl ins [] l
+                    ins []          (g :~: h) = [Set.fromList [g,h]]
+                    ins (ec:ecs) eq@(g :~: h) | g `Set.member` ec = h `Set.insert` ec : ecs
+                                              | h `Set.member` ec = g `Set.insert` ec : ecs
+                                              | otherwise         = ec : ins ecs eq
+                    ins ecs _                 = ecs
+          depthOf f = maximum (0:[1 + depthOf h | g :>: h <- stricts, g == eclassOf f])
+              where stricts  = [eclassOf g :>: eclassOf h | (g :>: h) <- l]
