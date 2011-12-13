@@ -124,7 +124,8 @@ definedSymbols trs = foldlRules f Set.empty trs
 constructors :: Trs -> Set F.Symbol
 constructors trs =  functionSymbols trs Set.\\ definedSymbols trs
 
-
+definingSymbol :: Trs -> F.Symbol -> Trs
+definingSymbol (Trs rs) f = Trs [ r | r <- rs, T.root (R.lhs r) == Right f ]
 
 -- rewrites s t trs = any (R.rewrites s t) $ rules trs
 
