@@ -60,10 +60,11 @@ recursionDepth recursives prec@(Precedence (sig, l)) = Map.fromList [(f,depthOf 
                          Nothing -> f
                          Just cs -> Set.findMin cs
           ecss = eclasses prec
-          depthOf f = maximum (0:[inc $ depthOf h | g :>: h <- stricts, g == eclassOf f])
+          depthOf f = inc $ maximum (0:[depthOf h | g :>: h <- stricts, g == eclassOf f])
               where stricts  = [eclassOf g :>: eclassOf h | (g :>: h) <- l]
                     inc | f `Set.member` recursives = (+) 1
                         | otherwise                 = id
                                                       
-ranks :: Precedence -> Map.Map Symbol Int                                                      
-ranks = recursionDepth (Set.fromList [])
+ranks :: Precedence -> Map.Map Symbol Int
+-- | ranks of function symbols in precedence, starting at '1'
+ranks prec@(Precedence(sig,_)) = recursionDepth (symbols sig) prec
