@@ -17,13 +17,14 @@ along with the Haskell Term Rewriting Library.  If not, see <http://www.gnu.org/
 
 module Termlib.ArgumentFiltering 
 where
-import qualified Data.IntSet as Set
-import Data.IntSet (IntSet, fromList)
+import qualified Data.IntSet as IntSet
+import qualified Data.Set as Set
+import Data.IntSet (IntSet, fromList, toList)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Text.PrettyPrint.HughesPJ hiding (empty)
 import qualified Text.PrettyPrint.HughesPJ as PP
-import Termlib.FunctionSymbol (Signature, Symbol, emptySignature, arity, maybeFresh, defaultAttribs, symbolName, SignatureMonad, getAttributes, Attributes (..))
+import Termlib.FunctionSymbol (Signature, Symbol, symbols, emptySignature, arity, maybeFresh, defaultAttribs, symbolName, SignatureMonad, getAttributes, Attributes (..))
 import Termlib.Utils (PrettyPrintable(..))
 import Termlib.Trs (fromRules, Trs, rules)
 import Termlib.Signature (runSignature,  getSignature)
@@ -46,12 +47,16 @@ filtering f (AF (sig,m)) = case Map.lookup f m of
                              Nothing -> Filtering $ fromList (take ar [1..])
                                  where ar = arity sig f
 
+fold :: (Symbol -> Filtering -> b -> b) -> ArgumentFiltering -> b -> b
+fold f af@(AF (sig, _)) m = foldr f' m (Set.toList $ symbols sig)
+  where f' sym = f sym (filtering sym af)
+
 instance PrettyPrintable ArgumentFiltering where 
   pprint (AF (sig, m)) | m == Map.empty = text "empty"
                        | otherwise      = fsep $ punctuate (text ",")  [ppp s f | (s,f) <- Map.toList m]
     where ppp s f = text "pi" <> parens (pprint (s, sig)) <+> text "=" <+> ppf f 
           ppf (Projection i) = text $ show i
-          ppf (Filtering is) = brackets $ sep $ punctuate (text ",") $ [ text $ show i | i <- Set.toList $ is]
+          ppf (Filtering is) = brackets $ sep $ punctuate (text ",") $ [ text $ show i | i <- IntSet.toList $ is]
 
 alter :: (Maybe Filtering -> Maybe Filtering) -> Symbol -> ArgumentFiltering -> ArgumentFiltering
 alter f s (AF (sig, m)) = AF (sig, Map.alter f s m)
@@ -65,6 +70,6 @@ apply trs af = fromRules `liftM` mapM filterRule (rules trs)
                                 Filtering is -> do {f' <- mkFreshSym;
                                                    ts'' <- mapM filter ts';
                                                    return $ Fun f' ts''}
-                                    where ts'        = snd $ foldl (\ (i,ts') ti -> if Set.member i is then (i+1,ti:ts') else (i+1,ts))  (1,[]) ts
+                                    where ts'        = snd $ foldl (\ (i,ts') ti -> if IntSet.member i is then (i+1,ti:ts') else (i+1,ts))  (1,[]) ts
                                           mkFreshSym = do attribs <- getAttributes f
-                                                          maybeFresh $ attribs { symArity = Set.size is}
+                                                          maybeFresh $ attribs { symArity = IntSet.size is}
