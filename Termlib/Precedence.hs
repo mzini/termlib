@@ -46,16 +46,24 @@ empty sig = precedence sig []
 insert :: Order Symbol -> Precedence -> Precedence
 insert e (Precedence (sig, l)) = Precedence (sig, e : l)
 
-ranks :: Precedence -> Map.Map Symbol Int
-ranks (Precedence (sig, l)) = Map.fromList [(f,depthOf f) | f <- Set.toList $ symbols sig ]
-    where eclassOf f = case find (\ cs -> f `Set.member` cs) eclasses of 
+eclasses :: Precedence -> [Set.Set Symbol]
+eclasses (Precedence (_, l)) = foldl ins [] l
+  where ins []          (g :~: h) = [Set.fromList [g,h]]
+        ins (ec:ecs) eq@(g :~: h) | g `Set.member` ec = h `Set.insert` ec : ecs
+                                  | h `Set.member` ec = g `Set.insert` ec : ecs
+                                  | otherwise         = ec : ins ecs eq
+        ins ecs _                 = ecs
+                                                
+recursionDepth :: Set.Set Symbol -> Precedence -> Map.Map Symbol Int
+recursionDepth recursives prec@(Precedence (sig, l)) = Map.fromList [(f,depthOf f) | f <- Set.toList $ symbols sig ]
+    where eclassOf f = case find (\ cs -> f `Set.member` cs) ecss of 
                          Nothing -> f
                          Just cs -> Set.findMin cs
-              where eclasses = foldl ins [] l
-                    ins []          (g :~: h) = [Set.fromList [g,h]]
-                    ins (ec:ecs) eq@(g :~: h) | g `Set.member` ec = h `Set.insert` ec : ecs
-                                              | h `Set.member` ec = g `Set.insert` ec : ecs
-                                              | otherwise         = ec : ins ecs eq
-                    ins ecs _                 = ecs
-          depthOf f = maximum (0:[1 + depthOf h | g :>: h <- stricts, g == eclassOf f])
+          ecss = eclasses prec
+          depthOf f = maximum (0:[inc $ depthOf h | g :>: h <- stricts, g == eclassOf f])
               where stricts  = [eclassOf g :>: eclassOf h | (g :>: h) <- l]
+                    inc | f `Set.member` recursives = (+) 1
+                        | otherwise                 = id
+                                                      
+ranks :: Precedence -> Map.Map Symbol Int                                                      
+ranks = recursionDepth (Set.fromList [])
