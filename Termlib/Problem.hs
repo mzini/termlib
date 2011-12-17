@@ -36,12 +36,13 @@ module Termlib.Problem
 where
 
 import Data.Set (Set)
+import qualified Data.Foldable as Foldable
 
 import qualified Termlib.Trs as Trs
 import Termlib.Trs.PrettyPrint (pprintNamedTrs)
 import Termlib.Trs (Trs) 
 import Termlib.Variable (Variables)
-import Termlib.FunctionSymbol (Signature, Symbol)
+import Termlib.FunctionSymbol (Signature, Symbol, isMarked)
 import Termlib.ContextSensitive (ReplacementMap)
 import Termlib.Utils
 import Text.PrettyPrint.HughesPJ
@@ -100,9 +101,12 @@ wellFormed :: Problem -> Bool
 wellFormed = Trs.wellFormed . allComponents
 
 isDPProblem :: Problem -> Bool
-isDPProblem prob = not (Trs.isEmpty $ dpComponents prob)
-                   && case startTerms prob of BasicTerms{} -> True; _ -> False
-
+isDPProblem prob = 
+  case startTerms prob of 
+    BasicTerms ds _ -> Foldable.all (isMarked sig) ds  
+    _               -> False
+  where sig = signature prob
+        
 mapRules :: (Trs -> Trs) -> Problem -> Problem
 mapRules f prob = prob { strictDPs = f $ strictDPs prob
                        , strictTrs = f $ strictTrs prob
