@@ -29,6 +29,8 @@ module Termlib.Problem
   , dpComponents
   , trsComponents
   , isDPProblem
+  , isRCProblem
+  , isDCProblem
   , mapRules
   , measureName
   , pprintComponents
@@ -100,6 +102,18 @@ trsComponents prob = strictTrs prob `Trs.union` weakTrs prob
 wellFormed :: Problem -> Bool
 wellFormed = Trs.wellFormed . allComponents
 
+isRCProblem :: Problem -> Bool
+isRCProblem prob = 
+  case startTerms prob of 
+    BasicTerms {} -> True
+    _             -> False
+
+isDCProblem :: Problem -> Bool
+isDCProblem prob = 
+  case startTerms prob of 
+    TermAlgebra {} -> True
+    _              -> False
+    
 isDPProblem :: Problem -> Bool
 isDPProblem prob = 
   case startTerms prob of 
