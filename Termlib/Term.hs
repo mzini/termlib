@@ -51,10 +51,12 @@ functionSymbols :: Term -> Set Symbol
 functionSymbols (Var _) = Set.empty
 functionSymbols (Fun f xs) = Set.insert f $ Set.unions $ [functionSymbols x | x <- xs]
 
+depth :: Term -> Int
 depth (Var _) = 0
 depth (Fun _ []) = 0
 depth (Fun _ xs) = (succ . maximum . map depth) xs
 
+root :: Term -> Either Variable Symbol
 root (Var v) = Left v
 root (Fun f _) = Right f
 

@@ -15,6 +15,8 @@ You should have received a copy of the GNU Lesser General Public License
 along with the Haskell Term Rewriting Library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
+{-# LANGUAGE TypeSynonymInstances #-}
+
 module Termlib.Trs
 where
 
@@ -28,15 +30,17 @@ import qualified Termlib.Term as T
 import Termlib.Term (Term)
 import qualified Termlib.FunctionSymbol as F
 import Termlib.FunctionSymbol (Symbol)
-
+import qualified Data.Foldable as Fold
 import Termlib.Variable (Variable)
 
-type Rules = [R.Rule]
-data Trs = Trs {rules :: Rules}
-           deriving (Eq, Show)
+data RuleList a = Trs {rules :: [a]}
+                deriving (Eq, Show)
 
-liftTrs :: (Rules -> a) -> Trs -> a
-liftTrs f (Trs trs) = f trs
+
+instance Fold.Foldable RuleList where
+  foldr f b (Trs rs) = List.foldr f b rs
+
+type Trs = RuleList Rule
 
 empty :: Trs
 empty = Trs []
@@ -57,45 +61,36 @@ append :: Trs -> Trs -> Trs
 (Trs trs1) `append` (Trs trs2) = Trs $ trs1 ++ trs2
 
 union :: Trs -> Trs -> Trs
-(Trs trs1) `union` (Trs trs2) = Trs $ foldl ins trs2 trs1 
+(Trs trs1) `union` (Trs trs2) = Trs $ List.foldl ins trs2 trs1 
     where ins [] r = [r]
           ins (r:rs) r' | r == r'   = r:rs
                         | otherwise = r : ins rs r'
 unions :: [Trs] -> Trs
-unions = foldl union empty
+unions = List.foldl union empty
 
 intersect :: Trs -> Trs -> Trs
 trs1 `intersect` (Trs rules2) = Trs $ filter (member trs1) rules2
     
 member :: Trs -> Rule -> Bool 
-member (Trs trs) r = any ((==) r) trs
+member (Trs trs) r = List.any ((==) r) trs
 
 (\\) :: Trs -> Trs -> Trs
 (Trs trs1) \\ (Trs trs2) = Trs $ trs1 List.\\ trs2
 
 wellFormed :: Trs -> Bool
-wellFormed = allrules wf
+wellFormed = Fold.all wf
     where wf r = not (T.isVariable lhs) && (T.variables rhs `Set.isSubsetOf` T.variables lhs)
               where lhs = R.lhs r
                     rhs = R.rhs r
 
-fromRules :: Rules -> Trs
+fromRules :: [Rule] -> Trs
 fromRules = Trs
 
-toRules :: Trs -> Rules
+toRules :: Trs -> [Rule]
 toRules (Trs rs) = rs
 
 isEmpty :: Trs -> Bool
 isEmpty trs = rules trs == []
-
-allrules :: (Rule -> Bool) -> Trs -> Bool
-allrules f trs = all f $ rules trs
-
-foldlRules :: (a -> Rule -> a) -> a -> Trs -> a 
-foldlRules f a = foldl f a . rules
-
-foldrRules :: (Rule -> a -> a) -> a -> Trs -> a 
-foldrRules f a = foldr f a . rules
 
 mapRules :: (Rule -> Rule) -> Trs -> Trs
 mapRules f = Trs . map f . rules
@@ -110,13 +105,13 @@ insert :: R.Rule -> Trs -> Trs
 insert r (Trs rs) = Trs $ r : List.delete r rs
 
 variables :: Trs -> Set Variable
-variables = foldlRules (\ s r -> s `Set.union` (R.variables r)) Set.empty
+variables = Fold.foldl (\ s r -> s `Set.union` (R.variables r)) Set.empty
 
 functionSymbols :: Trs -> Set Symbol 
-functionSymbols = foldlRules (\ s r -> s `Set.union` (R.functionSymbols r)) Set.empty
+functionSymbols = Fold.foldl (\ s r -> s `Set.union` (R.functionSymbols r)) Set.empty
 
 definedSymbols :: Trs -> Set Symbol
-definedSymbols trs = foldlRules f Set.empty trs
+definedSymbols trs = Fold.foldl f Set.empty trs
   where f s (R.Rule l _) = case T.root l of 
                              Left _  -> error "Trs.definedSymbols. Variable as lhs"
                              Right r -> Set.insert r s
@@ -147,34 +142,34 @@ isDuplicating trs = any R.isDuplicating $ rules trs
 -- linear = allrules R.linear
 
 isGround :: Trs -> Bool
-isGround = allrules R.isGround
+isGround = Fold.all R.isGround
 
--- leftFlat = allrules R.leftFlat
+-- leftFlat = Fold.all R.leftFlat
 
--- rightFlat = allrules R.rightFlat
+-- rightFlat = Fold.all R.rightFlat
 
--- leftShallow = allrules R.leftShallow
+-- leftShallow = Fold.all R.leftShallow
 
--- rightShallow = allrules R.rightShallow
+-- rightShallow = Fold.all R.rightShallow
 
 isLeftLinear :: Trs -> Bool
-isLeftLinear = allrules R.isLeftLinear
+isLeftLinear = Fold.all R.isLeftLinear
 
 isRightLinear :: Trs -> Bool
-isRightLinear = allrules R.isRightLinear
+isRightLinear = Fold.all R.isRightLinear
 
--- leftGround = allrules R.leftGround
+-- leftGround = Fold.all R.leftGround
 
--- rightGround = allrules R.rightGround
+-- rightGround = Fold.all R.rightGround
 
 isSizeIncreasing :: Trs -> Bool
 isSizeIncreasing trs = any R.isSizeIncreasing $ rules trs
 
 isNonSizeIncreasing :: Trs -> Bool
-isNonSizeIncreasing = allrules R.isNonSizeIncreasing
+isNonSizeIncreasing = Fold.all R.isNonSizeIncreasing
 
 isConstructor :: Trs -> Bool
-isConstructor trs = allrules (cb . R.lhs) trs
+isConstructor trs = Fold.all (cb . R.lhs) trs
     where cb (T.Fun _ ts) = all (\ ti -> T.functionSymbols ti `isSubsetOf` constrs) ts
           cb _          = False
           constrs = constructors trs

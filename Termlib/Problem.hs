@@ -34,12 +34,13 @@ module Termlib.Problem
   , mapRules
   , measureName
   , pprintComponents
+  , withFreshCompounds
   , wellFormed)
 where
 
 import Data.Set (Set)
 import qualified Data.Foldable as Foldable
-
+import Control.Monad (foldM)
 import qualified Termlib.Trs as Trs
 import Termlib.Trs.PrettyPrint (pprintNamedTrs)
 import Termlib.Trs (Trs) 
@@ -47,6 +48,10 @@ import Termlib.Variable (Variables)
 import Termlib.FunctionSymbol (Signature, Symbol, isMarked)
 import Termlib.ContextSensitive (ReplacementMap)
 import Termlib.Utils
+import qualified Termlib.Term as Term
+import qualified Termlib.Rule as R
+import qualified Termlib.FunctionSymbol as F
+import qualified Termlib.Signature as Sig
 import Text.PrettyPrint.HughesPJ
 
 data Strategy = Innermost
@@ -60,19 +65,21 @@ data StartTerms = BasicTerms {defineds :: Set Symbol
                   deriving (Eq, Show)
 
 
-data Ruleset = Ruleset { sdp  :: Trs
-                       , wdp  :: Trs
-                       , strs :: Trs
-                       , wtrs :: Trs }
+data Ruleset = Ruleset { sdp  :: Trs -- ^ strict dependency pairs
+                       , wdp  :: Trs -- ^ weak dependency pairs
+                       , strs :: Trs -- ^ strict rules
+                       , wtrs :: Trs  -- ^ weak rules
+                       }
 
-data Problem = Problem { startTerms  :: StartTerms
-                       , strategy    :: Strategy
-                       , variables   :: Variables
-                       , signature   :: Signature
-                       , strictDPs   :: Trs 
-                       , strictTrs   :: Trs
-                       , weakDPs     :: Trs
-                       , weakTrs     :: Trs } 
+data Problem = Problem { startTerms  :: StartTerms -- ^ considered start-terms
+                       , strategy    :: Strategy -- ^ considered strategy
+                       , variables   :: Variables -- ^ underlying set of variables
+                       , signature   :: Signature -- ^ underlying signature
+                       , strictDPs   :: Trs  -- ^ strict dependency pairs
+                       , strictTrs   :: Trs -- ^ strict rules
+                       , weakDPs     :: Trs -- ^ weak dependency pairs
+                       , weakTrs     :: Trs -- ^ weak rules
+                       } 
                deriving (Eq)
 
 ruleset :: Problem -> Ruleset
@@ -157,3 +164,25 @@ measureName p = ms (strategy p) <+> mt (startTerms p) <> text "-complexity"
           mt (BasicTerms _ _) = text "runtime"
           mt TermAlgebra    = text "derivational"
 
+
+withFreshCompounds :: Problem -> Problem
+withFreshCompounds prob = fst . flip Sig.runSignature (signature prob)  $ 
+                          do (nxt,sdps') <- foldM frsh (1::Int, []) sdps 
+                             (_  ,wdps') <- foldM frsh (nxt  , []) wdps 
+                             sig' <- Sig.getSignature
+                             return $ prob { signature = sig'
+                                           , strictDPs = Trs.fromRules sdps'
+                                           , weakDPs = Trs.fromRules wdps'}
+   where sdps = Trs.rules $ strictDPs prob
+         wdps = Trs.rules $ weakDPs prob
+         frsh (i, dps) rl = 
+           case R.rhs rl of 
+             Term.Var _    -> return (i, rl:dps)
+             Term.Fun f rs -> 
+               do attribs <- F.getAttributes f
+                  case (F.symIsCompound attribs, rs) of 
+                    (False, _)   -> return (i, rl:dps)
+                    (True , [r]) -> return (i, rl{ R.rhs = r }:dps)
+                    _            -> do c <- frshCompound i (length rs)
+                                       return (i+1, rl{ R.rhs = Term.Fun c rs}:dps) 
+         frshCompound i ar = F.fresh (F.defaultAttribs ("c_" ++ show i) ar) {F.symIsCompound = True}

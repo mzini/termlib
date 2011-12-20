@@ -25,6 +25,7 @@ module Termlib.Substitution
    apply,
    compose,
    subsumes,
+   matches,   
    match,
    isUnifiable,
    isRenamedUnifiable,
@@ -58,6 +59,8 @@ apply s (T.Fun f xs) = T.Fun f (fmap (apply s) xs)
 compose s t = map (apply t) s `union` t
 
 s `subsumes` t = Maybe.isJust (match t s empty)
+
+matches = flip subsumes
 
 -- we say s matches (the pattern) t if s is an instance of t, ie., t subsumes s
 match s (T.Var x) sub = Maybe.maybe (Just (compose sub (singleton x s)))

@@ -11,7 +11,8 @@ License-file:       COPYING.LESSER
 Homepage:           http://cl-informatik.uibk.ac.at/software/tct/
 Synopsis:           Term Rewriting Library
 Description:
-  A comprehensive Term Rewriting Library.
+  A comprehensive Term Rewriting Library. See @Termlib.Repl@ for 
+  implemented functionality.
 cabal-version:      >= 1.6
 build-type:         Simple
 library
