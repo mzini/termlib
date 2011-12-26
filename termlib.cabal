@@ -1,8 +1,8 @@
 Name:               termlib
-Version:            0.8
-Author:             Martin Avanzini, 
-                    Georg Moser, 
-                    Andreas Schnabl
+Version:            0.9
+Author:             Martin Avanzini <martin.avanzini@uibk.ac.at>,
+                    Georg Moser <georg.moser@uibk.ac.at>,
+                    Andreas Schnabl <andreas.schnabl@uibk.ac.at>
 Category:           Math
 Maintainer:         Martin Avanzini <martin.avanzini@uibk.ac.at>
 Stability:          Experimental
@@ -11,32 +11,44 @@ License-file:       COPYING.LESSER
 Homepage:           http://cl-informatik.uibk.ac.at/software/tct/
 Synopsis:           Term Rewriting Library
 Description:
-  A comprehensive Term Rewriting Library. See @Termlib.Repl@ for 
-  implemented functionality.
+  A comprehensive Term Rewriting Library. See "Termlib.Repl" for 
+  implemented functionality. This library is deprecated. Use the
+  new /rewriting library/ currently available at <http://colo2-c703.uibk.ac.at/git/?p=rewriting;a=summary>
+  instead.
 cabal-version:      >= 1.6
 build-type:         Simple
 library
- exposed-modules:   Termlib.FunctionSymbol
-                    Termlib.Signature
-                    Termlib.Variable
-                    Termlib.Term
-                    Termlib.Rule
-                    Termlib.Substitution
-                    Termlib.Trs
-                    Termlib.TermGraph
-                    Termlib.Term.Parser
-                    Termlib.Trs.PrettyPrint
-                    Termlib.Utils
-                    Termlib.Precedence
-                    Termlib.ArgumentFiltering
-                    Termlib.Problem
-                    Termlib.Problem.ParseErrors
-                    Termlib.Problem.XmlParser
-                    Termlib.Problem.TpdbParser
-                    Termlib.Problem.Parser
-                    Termlib.Repl
-                    Termlib.ContextSensitive
+ exposed-modules:   
+  Termlib.FunctionSymbol
+  Termlib.Signature
+  Termlib.Variable
+  Termlib.Term
+  Termlib.Rule
+  Termlib.Substitution
+  Termlib.Trs
+  Termlib.TermGraph
+  Termlib.Term.Parser
+  Termlib.Trs.PrettyPrint
+  Termlib.Utils
+  Termlib.Precedence
+  Termlib.ArgumentFiltering
+  Termlib.Problem
+  Termlib.Problem.ParseErrors
+  Termlib.Problem.XmlParser
+  Termlib.Problem.TpdbParser
+  Termlib.Problem.Parser
+  Termlib.Repl
+  Termlib.ContextSensitive
 
- ghc-options:       -O2 -Wall -fno-warn-orphans
+ ghc-options:       
+  -O2 -fno-warn-orphans
 
- build-depends:	    base>=4.0.0.0, containers, mtl, HaXml, filepath, parsec>=3.0.0, pretty, fgl
+ build-depends:
+  base == 4.*, 
+  containers >= 0.3 && < 0.5, 
+  mtl ==2.0.*, 
+  pretty == 1.0.1.*, 
+  fgl == 5.4.*, 
+  parsec == 3.1.*,
+  filepath >= 1.1 && < 1.3,
+  HaXml == 1.22.*

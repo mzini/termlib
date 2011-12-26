@@ -58,7 +58,9 @@ import Data.Set (Set)
 import qualified Data.Maybe as Maybe
 import Text.PrettyPrint.HughesPJ hiding (empty)
 
-data Rule = Rule {lhs :: Term, rhs :: Term}
+data Rule = Rule {lhs :: Term, -- ^ left hand side of rule
+                  rhs :: Term  -- ^ right hand side of rule
+                 }
   deriving (Show)
 
 data Strictness = StrictRule | WeakRule

@@ -33,7 +33,8 @@ import Termlib.Utils
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
 
-data Term = Var Variable | Fun F.Symbol [Term]
+data Term = Var Variable -- ^ term is a variable
+          | Fun F.Symbol [Term] -- ^ 'Fun f ts' denotes term with root symbol 'f' and arguments 'ts'
   deriving (Eq, Ord, Show)
 
 

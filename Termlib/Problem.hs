@@ -80,7 +80,7 @@ data Problem = Problem { startTerms  :: StartTerms -- ^ considered start-terms
                        , weakDPs     :: Trs -- ^ weak dependency pairs
                        , weakTrs     :: Trs -- ^ weak rules
                        } 
-               deriving (Eq)
+               deriving (Eq, Show)
 
 ruleset :: Problem -> Ruleset
 ruleset prob = Ruleset { sdp  = strictDPs prob

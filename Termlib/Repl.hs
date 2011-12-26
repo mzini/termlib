@@ -67,7 +67,8 @@ module Termlib.Repl
          -- * Term Rewriting Rule
          , Rule.Rule(..)
          -- ** Predicates
-         -- | See module "Termlib.Rule" for further predicates. 
+         -- | See module "Termlib.Rule" for further predicates. Predicates can be lifted
+         -- with @all@ and @any@ from module 'Data.Foldable' to 'Trs.Trs's.
            
          , Rule.isNonErasing
            -- | rule is non-erasing if every occurence of a variable in the left-hand
@@ -90,12 +91,14 @@ module Termlib.Repl
            
          -- * Term Rewrite System
          , Trs.Trs
+           -- | A TRS is a list of 'Rule.Rule'.
          , emptyTrs 
-           -- | the empty trs
+           -- | The empty 'Trs.Trs'..
          , Trs.fromRules
-           -- | translates a list of rewrite rules to a TRS
+           -- | translates a list of rewrite rules to a 'Trs.Trs'.
          , Trs.toRules
            -- | returns the list of rewrite rules in the TRS          
+           
          -- ** Set Operations
          , Trs.union 
            -- | union operator on the set of rules, removing duplicates
