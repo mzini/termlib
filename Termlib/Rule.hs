@@ -237,16 +237,16 @@ overlaps rule1 rule2 = ov rule1 rule2 ++ ov rule2 rule1
                 l1 = lhs r1
                 l2 = lhs r2
                 appropriateSubterms 
-                  | r1 == r2         = properSubterms
-                  | otherwise       = ([],l2) : properSubterms
+                  | r1 == r2         = properNvSubterms
+                  | otherwise       = ([],l2) : properNvSubterms
                 
-                properSubterms = 
+                properNvSubterms = 
                   case l2 of 
                     T.Var _    -> []
-                    T.Fun _ ts -> concatMap subterms [([i],ti) | (i,ti) <- enum ts]
+                    T.Fun _ ts -> concatMap nvSubterms [([i],ti) | (i,ti) <- enum ts]
                 
-                subterms (p, v@T.Var{}) = [(p,v)]
-                subterms (p, t@(T.Fun _ ts)) = 
-                  (p,t) : concatMap (\ (i,ti) -> subterms (p ++ [i],ti)) (enum ts)
+                nvSubterms (p, v@T.Var{}) = []
+                nvSubterms (p, t@(T.Fun _ ts)) = 
+                  (p,t) : concatMap (\ (i,ti) -> nvSubterms (p ++ [i],ti)) (enum ts)
                   
                 enum ts = zip [1..] ts

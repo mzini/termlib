@@ -64,6 +64,7 @@ module Termlib.Repl
          , Term.isVariable 
            -- | returns 'True' if the argument is a variable
          
+         , Rule.Overlap (..)
          -- * Term Rewriting Rule
          , Rule.Rule(..)
          -- ** Predicates
@@ -123,8 +124,9 @@ module Termlib.Repl
            -- | returns roots of right-hand sides
          , Trs.constructors
            -- | returns all symbols which are not roots of right-hand sides
-           
-         -- ** Predicates           
+         , Trs.overlaps
+           -- | returns the 'Rule.Overlap' of a term rewrite system         
+           -- ** Predicates           
            -- | Many predicates are defined in "Termlib.Rule". These can be lifted to  
            -- 'Trs.Trs' by 'Fold.all' and 'Fold.any'
            
