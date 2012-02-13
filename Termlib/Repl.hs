@@ -136,6 +136,10 @@ module Termlib.Repl
            -- in the corresponding left-hand side
          , Trs.isOverlapping
            -- | returns 'True' iff it contains two overlapping rules
+         , Trs.isOverlay
+           -- | returns 'True' iff all overlaps are only root overlaps
+         , Trs.isOrthogonal
+           -- | returns 'True' iff the given TRS is orthogonal           
          , Trs.isNestedRecursive
            -- | returns 'True' iff there exists a rule 'f(..) -> C[f(..C[f(..)]..)]'.
            

@@ -46,7 +46,7 @@ library
  build-depends:
   base == 4.*, 
   containers >= 0.3 && < 0.5, 
-  mtl ==2.0.*, 
+  mtl == 2.0.*, 
   pretty == 1.0.1.*, 
   fgl == 5.4.*, 
   parsec == 3.1.*,

@@ -228,11 +228,25 @@ isSizeIncreasing rule@(Rule l r) = T.size r > T.size l && isNonErasing rule
 isNonSizeIncreasing :: Rule -> Bool
 isNonSizeIncreasing rule@(Rule l r) = T.size l >= T.size r && isNonDuplicating rule
 
-isOverlapping :: Rule -> Rule -> Bool
-isOverlapping r1 r2 = any (S.isRenamedUnifiable l2) (appropriateSubterms l1) || any (S.isRenamedUnifiable l1) (appropriateSubterms l2)
-  where l1 = lhs r1
-        l2 = lhs r2
-        appropriateSubterms = if r1 == r2 then T.properNonVariableSubterms else T.nonVariableSubterms
+type Overlap = (Rule, [Int], Rule)
 
-isAnyOverlapping :: [Rule] -> [Rule] -> Bool
-isAnyOverlapping rs1 rs2 = any (\r -> any (isOverlapping r) rs2) rs1
+overlaps :: Rule -> Rule -> [Overlap]
+overlaps rule1 rule2 = ov rule1 rule2 ++ ov rule2 rule1
+  where ov r1 r2 = [ (r1,p,r2) | (p,t) <- appropriateSubterms, unify t ]
+          where unify = S.isRenamedUnifiable l1
+                l1 = lhs r1
+                l2 = lhs r2
+                appropriateSubterms 
+                  | r1 == r2         = properSubterms
+                  | otherwise       = ([],l2) : properSubterms
+                
+                properSubterms = 
+                  case l2 of 
+                    T.Var _    -> []
+                    T.Fun _ ts -> concatMap subterms [([i],ti) | (i,ti) <- enum ts]
+                
+                subterms (p, v@T.Var{}) = [(p,v)]
+                subterms (p, t@(T.Fun _ ts)) = 
+                  (p,t) : concatMap (\ (i,ti) -> subterms (p ++ [i],ti)) (enum ts)
+                  
+                enum ts = zip [1..] ts

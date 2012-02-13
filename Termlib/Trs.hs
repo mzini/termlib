@@ -22,9 +22,12 @@ where
 
 import qualified Data.List as List
 import qualified Data.Set as Set
-import Data.Set (Set, isSubsetOf)
+import qualified Data.Map as Map
 
+import Data.Set (Set, isSubsetOf)
+import Control.Monad.State.Lazy as S
 import qualified Termlib.Rule as R
+import qualified Termlib.Variable as V
 import Termlib.Rule (Rule)
 import qualified Termlib.Term as T
 import Termlib.Term (Term)
@@ -174,9 +177,6 @@ isConstructor trs = Fold.all (cb . R.lhs) trs
           cb _          = False
           constrs = constructors trs
 
-isOverlapping :: Trs -> Bool
-isOverlapping (Trs rs) = R.isAnyOverlapping rs rs
-
 isCollapsing :: Trs -> Bool
 isCollapsing trs = any R.isCollapsing $ rules trs
 
@@ -186,3 +186,52 @@ isNestedRecursive (Trs rs) = any nr rs
           
           hasNestedRoot (T.Var _)    = False
           hasNestedRoot (T.Fun f ts) = f `Set.member` Set.unions [T.functionSymbols ti | ti <- ts]
+
+
+overlaps :: Trs -> [R.Overlap]
+overlaps (Trs rs) = concatMap (uncurry R.overlaps) [ (r1,r2) 
+                                                   | (i1,r1) <- rs'
+                                                   , (i2,r2) <- rs'
+                                                   , i1 <= i2]
+  where rs' = zip [(1::Int)..] rs
+        
+isOverlapping :: Trs -> Bool
+isOverlapping = null . overlaps
+
+isOverlay :: Trs -> Bool
+isOverlay = all rootOverlap . overlaps
+  where rootOverlap (_,[],_) = True
+        rootOverlap _        = False
+        
+isOrthogonal :: Trs -> Bool        
+isOrthogonal trs = isLeftLinear trs && not (isOverlapping trs)
+
+-- type Position = [Int]
+-- type Overlap = (Rule, Position, Rule)
+
+-- rename :: Term -> State Int Term
+-- rename t = fst `liftM` rn t Map.empty
+--   where rn (T.Var x) m = 
+--           case Map.lookup x m of 
+--             Just x' -> return (T.Var x', m)
+--             Nothing -> 
+--               do x' <- fresh
+--                  return (T.Var x', Map.insert x x' m)
+--         rn (T.Fun f ts) m = 
+--           do (ts', m') <- foldM rnl ([],m) ts
+--              return (T.Fun f ts', m)
+--                where rnl (ts',m') ti =
+--                        do (ti',m'') <- rn ti m'
+--                           return (ti':ts',m'')
+--         fresh = 
+--           do fr <- get
+--              put $ fr + 1
+--              return $ V.Canon fr
+
+-- overlaps :: Trs -> [Overlap]
+-- overlaps (Trs rs) = concatMap (uncurry ovs) [(r1', r2') | r1' <- rs', r2' <- rs']
+--   where ovs (l1,r1) (l2,r2) = undefined
+--         rs' = evalState (mapM rn rs) 0
+--         rn r = 
+--           do l <- rename (R.lhs r)
+--              return (l,r)

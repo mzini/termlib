@@ -130,7 +130,6 @@ isVariable :: Term -> Bool
 isVariable (Var _) = True
 isVariable (Fun _ _) = False
 
-
 cardinality :: Either Variable Symbol -> Term -> Int
 cardinality x (Var y) | x == (Left y)    = 1
                       | otherwise        = 0
