@@ -196,7 +196,7 @@ overlaps (Trs rs) = concatMap (uncurry R.overlaps) [ (r1,r2)
   where rs' = zip [(1::Int)..] rs
         
 isOverlapping :: Trs -> Bool
-isOverlapping = null . overlaps
+isOverlapping = not . null . overlaps
 
 isOverlay :: Trs -> Bool
 isOverlay = all rootOverlap . overlaps
