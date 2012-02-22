@@ -35,10 +35,12 @@ module Termlib.Problem
   , measureName
   , pprintComponents
   , withFreshCompounds
+  , sanitise
   , wellFormed)
 where
 
 import Data.Set (Set)
+import qualified Data.Set as Set
 import qualified Data.Foldable as Foldable
 import Control.Monad (foldM)
 import qualified Termlib.Trs as Trs
@@ -51,6 +53,7 @@ import Termlib.Utils
 import qualified Termlib.Term as Term
 import qualified Termlib.Rule as R
 import qualified Termlib.FunctionSymbol as F
+import qualified Termlib.Variable as V
 import qualified Termlib.Signature as Sig
 import Text.PrettyPrint.HughesPJ
 
@@ -164,6 +167,15 @@ measureName p = ms (strategy p) <+> mt (startTerms p) <> text "-complexity"
           mt (BasicTerms _ _) = text "runtime"
           mt TermAlgebra    = text "derivational"
 
+sanitise :: Problem -> Problem
+sanitise prob = prob { signature = signature prob `Sig.restrictToSymbols` syms
+                     , variables = variables prob `Sig.restrictToSymbols` vars }
+  where rs = allComponents prob
+        syms = stSyms `Set.union` Trs.functionSymbols rs
+        stSyms = case startTerms prob of 
+                   BasicTerms ds cs -> ds `Set.union` cs
+                   _                -> Set.empty
+        vars = Set.fromList [ i | V.User i <- Set.toList $ Trs.variables rs]
 
 withFreshCompounds :: Problem -> Problem
 withFreshCompounds prob = fst . flip Sig.runSignature (signature prob)  $ 
