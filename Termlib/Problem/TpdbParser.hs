@@ -263,16 +263,17 @@ typeofproof :: TPDBParser ()
 typeofproof = (string "TERMINATION" <|> string "COMPLEXITY") >> return ()
 
 ident :: TPDBParser String
-ident = many1 (try innocentmin <|> try innocenteq <|> noneOf " \n\r\t()\",|-=")
-        where innocentmin = do _ <- char '-'
-                               _ <- notFollowedBy $ char '>'
-                               return '-'
-              innocenteq  = do _ <- char '='
-                               _ <- notFollowedBy $ char '='
-                               return '='
+ident = many1 (noneOf " \n\r\t()\",|")
+-- ident = many1 (try innocentmin <|> try innocenteq <|> noneOf " \n\r\t()\",|-=")
+--         where innocentmin = do _ <- char '-'
+--                                _ <- notFollowedBy $ char '>'
+--                                return '-'
+--               innocenteq  = do _ <- char '='
+--                                _ <- notFollowedBy $ char '='
+--                                return '='
 
 laxident :: TPDBParser String
-laxident = many1 (noneOf " \n\r\t()\",|")
+laxident = many1 (noneOf " \n\r\t()")
 
 anylist :: TPDBParser ()
 anylist = (try anylist1 <|> try anylist2 <|> try anylist3 <|> try anylist4 <|> anylist5) >> return ()
