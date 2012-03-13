@@ -149,7 +149,9 @@ instance PrettyPrintable Problem where
             ppStrategy Outermost{}        = text "outermost"
 
 pprintComponents :: Problem -> Doc
-pprintComponents prob = 
+pprintComponents prob 
+  | null (Trs.toRules $ allComponents prob) = block "Rules" (text "Empty")
+  | otherwise =
     ppTrs "Strict DPs" (strictDPs prob)
     $+$ ppTrs "Strict Trs" (strictTrs prob)
     $+$ ppTrs "Weak DPs"   (weakDPs prob)

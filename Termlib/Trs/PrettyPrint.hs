@@ -33,10 +33,12 @@ import Termlib.Utils
 
 
 pprintTrs :: (a -> Doc) -> [a] -> Doc
-pprintTrs ppRule trs = braces $ pprs trs 
+pprintTrs ppRule trs = pprs trs 
       where pprs []  = text ""
-            pprs [r] = ppRule r
-            pprs rs  = vcat $ [com <+> ppRule r | (com,r) <- zip (text " " : repeat (text ",")) rs]
+            pprs [r] = braces $ text " " <> ppRule r <> text " "
+            pprs rs  = vcat [ com <+> ppRule r
+                            | (com,r) <- zip (text "{" : repeat (text ",")) rs ]
+                       <+> text "}"
 
 instance PrettyPrintable Trs where
     pprint trs = pprintTrs pprint (rules trs)
