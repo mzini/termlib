@@ -64,7 +64,7 @@ data Strategy = Innermost
 
 data StartTerms = BasicTerms {defineds :: Set Symbol
                              , constrs :: Set Symbol}
-                | TermAlgebra 
+                | TermAlgebra (Set Symbol)
                   deriving (Eq, Show)
 
 
@@ -166,8 +166,8 @@ measureName p = ms (strategy p) <+> mt (startTerms p) <> text "-complexity"
           ms Outermost = text "outermost"
           ms (ContextSensitive _) = text "context-sensitive"
           ms Full      = empty
-          mt (BasicTerms _ _) = text "runtime"
-          mt TermAlgebra    = text "derivational"
+          mt BasicTerms {} = text "runtime"
+          mt TermAlgebra {}    = text "derivational"
 
 sanitise :: Problem -> Problem
 sanitise prob = prob { signature = signature prob `Sig.restrictToSymbols` syms

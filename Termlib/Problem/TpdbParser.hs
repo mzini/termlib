@@ -33,6 +33,7 @@ import Termlib.Problem.ParseErrors (ParseError (..), ParseWarning (..))
 import Control.Monad.Writer.Lazy
 import qualified Termlib.Signature as Signature
 import Termlib.Variable (Variables)
+import qualified Data.Set as Set
 
 
 type TPDBParser a = ParsecT String Problem (ErrorT ParseError (Writer [ParseWarning])) a 
@@ -45,7 +46,7 @@ problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem s
                             (Left e,             _    ) -> Left e
                             (Right (Left e),     _    ) -> Left $ ParsecParseError e
                             (Right (Right prob), warns) -> Right (prob{startTerms = finStartTerms prob}, warns)
-    where stdprob = Problem { startTerms = TermAlgebra
+    where stdprob = Problem { startTerms = TermAlgebra Set.empty
                             , strategy   = Full
                             , variables  = V.emptyVariables
                             , signature  = F.emptySignature
@@ -53,10 +54,12 @@ problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem s
                             , strictTrs  = T.empty
                             , weakDPs    = T.empty
                             , weakTrs    = T.empty} 
-          finStartTerms prob = mkStartTerms (startTerms prob) (T.definedSymbols rs) (T.constructors rs)
+          finStartTerms prob = mkStartTerms (startTerms prob)
               where rs = allComponents prob
-          mkStartTerms TermAlgebra _ _ = TermAlgebra
-          mkStartTerms (BasicTerms _ _) d c = BasicTerms d c 
+                    ds = T.definedSymbols rs
+                    cs = F.symbols (signature prob) Set.\\ ds
+                    mkStartTerms TermAlgebra {} = TermAlgebra $ ds `Set.union` cs
+                    mkStartTerms BasicTerms {} = BasicTerms ds cs 
 
 parseProblem :: TPDBParser Problem
 parseProblem = speclist >> getState
@@ -248,13 +251,16 @@ starttermdecl :: TPDBParser ()
 starttermdecl = try sta <|> try scb <|> sautomat
 
 sta :: TPDBParser ()
-sta = string "FULL" >> setStartTerms TermAlgebra
+sta = string "FULL" >> setStartTerms (TermAlgebra undefined)
 
 scb :: TPDBParser ()
 scb = string "CONSTRUCTOR-BASED" >> setStartTerms (BasicTerms undefined undefined)
 
 sautomat :: TPDBParser ()
-sautomat = string "AUTOMATON" >> automatonstuff >> warn (PartiallySupportedStartTerms "Automaton specified start term set") >> setStartTerms TermAlgebra
+sautomat = string "AUTOMATON" 
+           >> automatonstuff 
+           >> warn (PartiallySupportedStartTerms "Automaton specified start term set") 
+           >> setStartTerms (TermAlgebra undefined)
 
 automatonstuff :: TPDBParser ()
 automatonstuff = anylist

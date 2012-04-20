@@ -24,6 +24,7 @@ import Control.Monad.RWS.Lazy
 import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Maybe (fromMaybe)
 import Text.XML.HaXml
 import Text.XML.HaXml.Posn
@@ -88,9 +89,9 @@ parseProblem doc = do (symMap, sig, rm) <- parseOne errSig parseSignature $ tag 
                       strat <- if rm == CS.empty 
                                then parseStrategy doc
                                else return $ ContextSensitive rm
-                      let both    =  strict `Trs.union` weak
-                          cons    = Trs.constructors both
+                      let both    = strict `Trs.union` weak
                           defs    = Trs.definedSymbols both
+                          cons    = F.symbols sig Set.\\ defs
                       st <- parseStartTerms defs cons doc
                       return $ Problem { startTerms = st
                                        , strategy   = strat
@@ -132,7 +133,7 @@ parseStrategy doc = case verbatim $ tag "problem" /> tag "strategy" /> txt $ doc
 
 parseStartTerms :: Set F.Symbol -> Set F.Symbol -> Content i -> Parser StartTerms
 parseStartTerms defs cons doc = case tag "problem" /> tag "startterm" /> tag "constructor-based" $ doc of
-                                     []              -> return TermAlgebra
+                                     []              -> return $ TermAlgebra $ defs `Set.union` cons
                                      _               -> return $ BasicTerms {defineds = defs, constrs = cons}
 
 parseTrs :: Signature -> SymMap -> Content i -> Parser (Trs,Trs, Variables)
