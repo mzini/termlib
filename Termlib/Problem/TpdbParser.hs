@@ -34,6 +34,7 @@ import Control.Monad.Writer.Lazy
 import qualified Termlib.Signature as Signature
 import Termlib.Variable (Variables)
 import qualified Data.Set as Set
+import Data.Maybe (fromJust)
 
 
 type TPDBParser a = ParsecT String Problem (ErrorT ParseError (Writer [ParseWarning])) a 
@@ -154,7 +155,20 @@ rule = do lhs   <- term
             throwError $ UnsupportedRewritingError "Conditional rewriting"
 
 term :: TPDBParser Term.Term
-term = try complexterm <|> simpleterm
+term = try complexterm <|> try sexpr <|> simpleterm
+
+sexpr :: TPDBParser Term.Term
+sexpr = 
+  do _ <- finwhite $ char '('
+     args <- sepBy term whitespaces
+     _ <- finwhite $ char ')'
+     app <- getSymbol "." 2
+     fromJust `liftM` appterm app args
+  where appterm _ [] = throwError $ UnknownError "sexpr without arguments"
+        appterm _ [_] = throwError $ UnknownError "sexpr with single argument"
+        appterm app xs = return $ foldl f Nothing xs
+          where f Nothing t = Just t
+                f (Just s) t = Just $ Term.Fun app [s,t]
 
 complexterm :: TPDBParser Term.Term
 complexterm = do name     <- ident
