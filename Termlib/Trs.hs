@@ -36,23 +36,27 @@ import Termlib.FunctionSymbol (Symbol)
 import qualified Data.Foldable as Fold
 import Termlib.Variable (Variable)
 
-data RuleList a = Trs {rules :: [a]}
-                deriving (Eq, Show)
+data RuleSet a = Trs {ruleSet :: Set a}
+               deriving (Eq, Show)
 
 
-instance Fold.Foldable RuleList where
-  foldr f b (Trs rs) = List.foldr f b rs
 
-type Trs = RuleList Rule
+instance Fold.Foldable RuleSet where
+  foldr f b (Trs rs) = Set.foldr f b rs
+
+type Trs = RuleSet Rule
+
+rules :: Trs -> [Rule]
+rules = Set.elems . ruleSet
 
 empty :: Trs
-empty = Trs []
+empty = Trs Set.empty
 
 singleton :: Rule -> Trs
-singleton r = Trs [r]
+singleton = Trs . Set.singleton
 
 invert :: Trs -> Trs
-invert = Trs . map R.invert . rules
+invert = fromRules . map R.invert . rules
 
 lhss :: Trs -> [T.Term]
 lhss = map R.lhs . rules
@@ -61,24 +65,22 @@ rhss :: Trs -> [T.Term]
 rhss = map R.rhs . rules
 
 append :: Trs -> Trs -> Trs
-(Trs trs1) `append` (Trs trs2) = Trs $ trs1 ++ trs2
+append = union
 
 union :: Trs -> Trs -> Trs
-(Trs trs1) `union` (Trs trs2) = Trs $ List.foldl ins trs2 trs1 
-    where ins [] r = [r]
-          ins (r:rs) r' | r == r'   = r:rs
-                        | otherwise = r : ins rs r'
+(Trs trs1) `union` (Trs trs2) = Trs $ trs1 `Set.union` trs2
+
 unions :: [Trs] -> Trs
 unions = List.foldl union empty
 
 intersect :: Trs -> Trs -> Trs
-trs1 `intersect` (Trs rules2) = Trs $ filter (member trs1) rules2
+Trs rs1 `intersect` Trs rs2 = Trs $ rs1 `Set.intersection` rs2
     
 member :: Trs -> Rule -> Bool 
-member (Trs trs) r = List.any ((==) r) trs
+member (Trs trs) r = r `Set.member` trs
 
 (\\) :: Trs -> Trs -> Trs
-(Trs trs1) \\ (Trs trs2) = Trs $ trs1 List.\\ trs2
+(Trs trs1) \\ (Trs trs2) = Trs $ trs1 Set.\\ trs2
 
 wellFormed :: Trs -> Bool
 wellFormed = Fold.all wf
@@ -87,25 +89,25 @@ wellFormed = Fold.all wf
                     rhs = R.rhs r
 
 fromRules :: [Rule] -> Trs
-fromRules = Trs
+fromRules = Trs . Set.fromList
 
 toRules :: Trs -> [Rule]
-toRules (Trs rs) = rs
+toRules (Trs rs) = Set.elems rs
 
 isEmpty :: Trs -> Bool
 isEmpty trs = rules trs == []
 
 mapRules :: (Rule -> Rule) -> Trs -> Trs
-mapRules f = Trs . map f . rules
+mapRules f = fromRules . map f . rules
 
 mapTerms :: (Term -> Term) -> Trs -> Trs
-mapTerms f (Trs rs) = Trs [R.Rule (f lh) (f rh) | R.Rule lh rh <- rs ]
+mapTerms f rs = fromRules [R.Rule (f lh) (f rh) | R.Rule lh rh <- rules rs ]
 
 filterRules :: (Rule -> Bool) -> Trs -> Trs
-filterRules f = Trs . filter f . rules
+filterRules f (Trs rs) = Trs $ Set.filter f rs
 
 insert :: R.Rule -> Trs -> Trs
-insert r (Trs rs) = Trs $ r : List.delete r rs
+insert r (Trs rs) = Trs $ Set.insert r rs
 
 variables :: Trs -> Set Variable
 variables = Fold.foldl (\ s r -> s `Set.union` (R.variables r)) Set.empty
@@ -123,7 +125,7 @@ constructors :: Trs -> Set F.Symbol
 constructors trs =  functionSymbols trs Set.\\ definedSymbols trs
 
 definingSymbol :: Trs -> F.Symbol -> Trs
-definingSymbol (Trs rs) f = Trs [ r | r <- rs, T.root (R.lhs r) == Right f ]
+definingSymbol trs f = filterRules (\ rl -> T.root (R.lhs rl) == Right f) trs
 
 -- rewrites s t trs = any (R.rewrites s t) $ rules trs
 
@@ -181,19 +183,20 @@ isCollapsing :: Trs -> Bool
 isCollapsing trs = any R.isCollapsing $ rules trs
 
 isNestedRecursive :: Trs -> Bool
-isNestedRecursive (Trs rs) = any nr rs
+isNestedRecursive trs = any nr rs
     where nr (R.Rule l r) = any hasNestedRoot [t | t <- T.subterms r, T.root t == T.root l]
-          
+          rs = rules trs
           hasNestedRoot (T.Var _)    = False
           hasNestedRoot (T.Fun f ts) = f `Set.member` Set.unions [T.functionSymbols ti | ti <- ts]
 
 
 overlaps :: Trs -> [R.Overlap]
-overlaps (Trs rs) = concatMap (uncurry R.overlaps) [ (r1,r2) 
-                                                   | (i1,r1) <- rs'
-                                                   , (i2,r2) <- rs'
-                                                   , i1 <= i2]
-  where rs' = zip [(1::Int)..] rs
+overlaps trs = 
+  concatMap (uncurry R.overlaps) [ (r1,r2) 
+                                 | (i1,r1) <- rs'
+                                 , (i2,r2) <- rs'
+                                 , i1 <= i2]
+  where rs' = zip [(1::Int)..] $ rules trs
         
 isOverlapping :: Trs -> Bool
 isOverlapping = not . null . overlaps
