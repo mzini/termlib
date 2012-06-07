@@ -17,12 +17,16 @@ along with the Haskell Term Rewriting Library.  If not, see <http://www.gnu.org/
 
 {-# LANGUAGE FlexibleInstances #-}
 
-module Termlib.Problem.Parser ( problemFromFile ) where
+module Termlib.Problem.Parser ( 
+  problemFromFile
+  , problemFromString 
+  ) where
 import Control.Monad.Error
 
 import Control.Monad.Error
 import System.FilePath (takeExtension)
 import Termlib.Problem
+import Termlib.Rule as R
 import Termlib.Problem.ParseErrors
 import qualified Termlib.Problem.TpdbParser as TpdbParser
 import qualified Termlib.Problem.XmlParser as XmlParser
@@ -30,11 +34,12 @@ import qualified Termlib.Problem.XmlParser as XmlParser
 
 problemFromString :: String -> Maybe Problem
 problemFromString input = case (XmlParser.problemFromString input, TpdbParser.problemFromString input) of 
-                            (Right e,_)        -> Just $ fst e
-                            (_      , Right e) -> Just $ fst e
+                            (Right e, _)       -> Just $ fst' e
+                            (_      , Right e) -> Just $ fst' e
                             _                  -> Nothing
-
-problemFromFile :: String -> IO (Either ParseError (Problem,[ParseWarning]))
+  where fst' (a,_,_) = a
+        
+problemFromFile :: String -> IO (Either ParseError (Problem,[(Rule,Bool)],[ParseWarning]))
 problemFromFile input = do minput <- getInputStr 
                            case minput of 
                              Just str -> return $ parser str

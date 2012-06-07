@@ -37,16 +37,18 @@ import qualified Data.Set as Set
 import Data.Maybe (fromJust)
 
 
-type TPDBParser a = ParsecT String Problem (ErrorT ParseError (Writer [ParseWarning])) a 
+type Rulelist = [(R.Rule,Bool)]
+type TPDBParser a = ParsecT String (Problem,Rulelist) (ErrorT ParseError (Writer [ParseWarning])) a 
+
 
 warn :: ParseWarning -> TPDBParser ()
 warn a = lift $ tell [a]
 
-problemFromString :: String -> Either ParseError (Problem,[ParseWarning])
-problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem stdprob ".trs problem input" input of 
-                            (Left e,             _    ) -> Left e
-                            (Right (Left e),     _    ) -> Left $ ParsecParseError e
-                            (Right (Right prob), warns) -> Right (prob{startTerms = finStartTerms prob}, warns)
+problemFromString :: String -> Either ParseError (Problem,Rulelist,[ParseWarning])
+problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem (stdprob,[]) ".trs problem input" input of 
+                            (Left e,  _) -> Left e
+                            (Right (Left e), _) -> Left $ ParsecParseError e
+                            (Right (Right (prob,ls)), warns) -> Right (prob{startTerms = finStartTerms prob}, reverse ls,warns)
     where stdprob = Problem { startTerms = TermAlgebra Set.empty
                             , strategy   = Full
                             , variables  = V.emptyVariables
@@ -62,35 +64,19 @@ problemFromString input = case runWriter $ runErrorT $ runParserT parseProblem s
                     mkStartTerms TermAlgebra {} = TermAlgebra $ ds `Set.union` cs
                     mkStartTerms BasicTerms {} = BasicTerms ds cs 
 
-parseProblem :: TPDBParser Problem
+parseProblem :: TPDBParser (Problem,Rulelist)
 parseProblem = speclist >> getState
 
 modifyProblem :: (Problem -> Problem) -> TPDBParser ()
-modifyProblem f = getState >>= (putState . f)
+modifyProblem f = modifyState (\ (p,ls) -> (f p, ls))
 
-modifyStrictTrs :: (T.Trs -> T.Trs) -> TPDBParser ()
-modifyStrictTrs f = modifyProblem f'
-  where f' prob = prob { strictTrs = f $ strictTrs prob }
-
-modifyWeakTrs :: (T.Trs -> T.Trs) -> TPDBParser ()
-modifyWeakTrs f = modifyProblem f'
-  where f' prob = prob { weakTrs = f $ weakTrs prob }
-
-setStartTerms :: StartTerms -> TPDBParser ()
-setStartTerms st = do prob <- getState
-                      setState $ prob{startTerms = st}
-                      return ()
-
-setStrategy :: Strategy -> TPDBParser ()
-setStrategy strat = do prob <- getState
-                       setState $ prob{strategy = strat}
-                       return ()
 
 onSignature :: F.SignatureMonad a -> TPDBParser a
-onSignature m = do prob <- getState
-                   let (a,sig') = Signature.runSignature m $ signature prob
-                   putState $ prob {signature = sig'}
-                   return a
+onSignature m = 
+  do (prob,ls) <- getState
+     let (a,sig') = Signature.runSignature m $ signature prob
+     putState (prob {signature = sig'},ls)
+     return a
 
 getSymbol :: F.FunctionName -> F.Arity -> TPDBParser F.Symbol
 getSymbol name arity = onSignature m 
@@ -102,23 +88,26 @@ getSymbol name arity = onSignature m
                    Nothing  -> F.fresh $ F.defaultAttribs name arity
 
 getVariables :: TPDBParser Variables 
-getVariables = variables `liftM` getState 
+getVariables = (variables . fst) `liftM` getState 
 
 onVariables :: V.VariableMonad a -> TPDBParser a
-onVariables m = do prob <- getState
+onVariables m = do (prob, ls) <- getState
                    let (a,vars') = Signature.runSignature m $ variables prob
-                   putState $ prob {variables = vars'}
+                   putState $ (prob {variables = vars'},ls)
                    return a
-
 
 addFreshVar :: String -> TPDBParser ()
 addFreshVar name = onVariables (V.maybeFresh name) >> return ()
 
 addStrictRule :: R.Rule -> TPDBParser ()
-addStrictRule r = modifyStrictTrs (T.insert r) >> return ()
-
+addStrictRule r = modifyState f
+  where f (p, ls) = ( p { strictTrs = T.insert r (strictTrs p)}
+                     , (r,False) : ls) 
+                    
 addWeakRule :: R.Rule -> TPDBParser ()
-addWeakRule r = modifyWeakTrs (T.insert r) >> return ()
+addWeakRule r = modifyState f
+  where f (p, ls) = ( p { weakTrs = T.insert r (weakTrs p)}
+                     , (r,True) : ls) 
 
 speclist :: TPDBParser ()
 speclist = many spec >> eof >> return ()
@@ -228,18 +217,18 @@ strategydecl :: TPDBParser ()
 strategydecl = try sfull <|> try sinner <|> try souter <|> scons
 
 sfull :: TPDBParser ()
-sfull = string "FULL" >> setStrategy Full
+sfull = string "FULL" >> modifyProblem (\ p -> p {strategy = Full })
 
 sinner :: TPDBParser ()
-sinner = string "INNERMOST" >> setStrategy Innermost
+sinner = string "INNERMOST" >> modifyProblem (\ p -> p {strategy = Innermost })
 
 souter :: TPDBParser ()
-souter = string "OUTERMOST" >> setStrategy Outermost
+souter = string "OUTERMOST" >> modifyProblem (\ p -> p {strategy = Outermost })
 
 scons :: TPDBParser ()
 scons = do string "CONTEXTSENSITIVE" 
            rmap <- csstratlist 
-           setStrategy (ContextSensitive rmap)
+           modifyProblem (\ p -> p {strategy = ContextSensitive rmap })
 
 csstratlist :: TPDBParser ReplacementMap
 csstratlist = do ls <- many (inwhite csstrat)
@@ -265,16 +254,16 @@ starttermdecl :: TPDBParser ()
 starttermdecl = try sta <|> try scb <|> sautomat
 
 sta :: TPDBParser ()
-sta = string "FULL" >> setStartTerms (TermAlgebra undefined)
+sta = string "FULL" >> modifyProblem (\ p -> p {startTerms = TermAlgebra undefined})
 
 scb :: TPDBParser ()
-scb = string "CONSTRUCTOR-BASED" >> setStartTerms (BasicTerms undefined undefined)
+scb = string "CONSTRUCTOR-BASED" >> modifyProblem (\ p -> p {startTerms = BasicTerms undefined undefined})
 
 sautomat :: TPDBParser ()
 sautomat = string "AUTOMATON" 
            >> automatonstuff 
            >> warn (PartiallySupportedStartTerms "Automaton specified start term set") 
-           >> setStartTerms (TermAlgebra undefined)
+           >> modifyProblem (\ p -> p {startTerms = TermAlgebra undefined})
 
 automatonstuff :: TPDBParser ()
 automatonstuff = anylist
