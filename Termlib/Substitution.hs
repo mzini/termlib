@@ -20,6 +20,7 @@ module Termlib.Substitution
    empty,
    singleton,
    map,
+   toList,
    union,
    lookup,
    apply,
@@ -28,10 +29,10 @@ module Termlib.Substitution
    matches,   
    match,
    isUnifiable,
+   unify,
    isRenamedUnifiable,
    encompasses,
    variant,
-   Substitution
   ) where
 
 import Control.Monad.State.Lazy as State
@@ -48,6 +49,8 @@ map f s@(Substitution sub) = Substitution $ fmap f sub
 empty = Substitution Map.empty
 
 singleton x = Substitution . Map.singleton x
+
+toList (Substitution sub) = Map.toList sub
 
 s@(Substitution s') `union` t@(Substitution t') = Substitution (s' `Map.union` t')
 
@@ -72,7 +75,7 @@ match (T.Fun g ys) (T.Fun f xs) sub
 match _ _ _ = Nothing
 
 isUnifiable :: T.Term -> T.Term -> Bool
-isUnifiable s t = State.evalState unify ([(s, t)], empty)
+isUnifiable s t = State.evalState unify' ([(s, t)], empty)
 
 isRenamedUnifiable :: T.Term -> T.Term -> Bool
 isRenamedUnifiable s t = isUnifiable s' t'
@@ -81,24 +84,35 @@ isRenamedUnifiable s t = isUnifiable s' t'
         sigma'      = Map.fromList [(sigmamax, sigmamax)]
         (t', _)     = T.canonise t sigma'
 
-unify :: State.State ([(T.Term, T.Term)], Substitution) Bool
-unify = do (eqs, sub) <- State.get
-           if null eqs then return True else
-             case head eqs of
-               (s, t) | s == t                                   -> do State.put (tail eqs, sub)
-                                                                       unify
-               (s@(T.Fun _ _), t@(T.Var _))                      -> do State.put ((t, s) : tail eqs, sub)
-                                                                       unify
-               (T.Fun f ss, T.Fun g ts) | f /= g                 -> return False
-                                        | length ss /= length ts -> return False
-                                        | otherwise              -> do State.put (zip ss ts ++ tail eqs, sub)
-                                                                       unify
-               (T.Var x, t) | x `Set.member` T.variables t       -> return False
-                            | otherwise                          -> do let subx = singleton x t
-                                                                       let eqs' = fmap (fmap $ apply subx) (tail eqs)
-                                                                       let sub' = compose sub subx
-                                                                       State.put (eqs', sub')
-                                                                       unify
+
+unify :: T.Term -> T.Term -> Maybe Substitution
+unify s t | u = Just sub
+          | otherwise = Nothing
+  where (u,(_,sub)) = State.runState unify' ([(s, t)], empty)
+
+unify' :: State.State ([(T.Term, T.Term)], Substitution) Bool
+unify' = do (eqs, sub@(Substitution m)) <- State.get
+            if null eqs 
+             then return True 
+             else case head eqs of
+                    (s, t) | s == t -> State.put (tail eqs, sub) >> unify'
+                    (s@(T.Fun _ _), t@(T.Var _)) -> State.put ((t, s) : tail eqs, sub) >> unify'
+                    (T.Fun f ss, T.Fun g ts) 
+                      | f /= g                 -> return False
+                      | length ss /= length ts -> return False
+                      | otherwise             -> State.put (zip ss ts ++ tail eqs, sub) >> unify'
+                    (T.Var x, t) 
+                      | x `Set.member` T.variables t -> return False
+                      | otherwise -> 
+                        case Map.updateLookupWithKey (\ _ _ -> Nothing) x m of 
+                          (Just t',m') -> State.put ((t,t') : tail eqs, Substitution m') >> unify'
+                          _ -> do
+                            let subx = singleton x t
+                                eqs' = fmap (apply subx) `fmap` tail eqs
+                                sub' = compose sub subx
+                            if any id [ v `Set.member` T.variables s | (v,s) <- toList sub' ]
+                             then return False  
+                             else State.put (eqs', sub') >> unify'
 
 variant s t = (s `subsumes` t) && (t `subsumes` s)
 
