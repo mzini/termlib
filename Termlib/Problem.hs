@@ -176,7 +176,7 @@ sanitise prob = prob { signature = signature prob `Sig.restrictToSymbols` syms
         syms = stSyms `Set.union` Trs.functionSymbols rs
         stSyms = case startTerms prob of 
                    BasicTerms ds cs -> ds `Set.union` cs
-                   _                -> Set.empty
+                   TermAlgebra fs   -> fs
         vars = Set.fromList [ i | V.User i <- Set.toList $ Trs.variables rs]
 
 withFreshCompounds :: Problem -> Problem
