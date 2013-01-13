@@ -180,23 +180,24 @@ sanitise prob = prob { signature = signature prob `Sig.restrictToSymbols` syms
         vars = Set.fromList [ i | V.User i <- Set.toList $ Trs.variables rs]
 
 withFreshCompounds :: Problem -> Problem
-withFreshCompounds prob = fst . flip Sig.runSignature (signature prob)  $ 
-                          do (nxt,sdps') <- foldM frsh (1::Int, []) sdps 
-                             (_  ,wdps') <- foldM frsh (nxt  , []) wdps 
-                             sig' <- Sig.getSignature
-                             return $ prob { signature = sig'
-                                           , strictDPs = Trs.fromRules sdps'
-                                           , weakDPs = Trs.fromRules wdps'}
-   where sdps = Trs.rules $ strictDPs prob
-         wdps = Trs.rules $ weakDPs prob
-         frsh (i, dps) rl = 
-           case R.rhs rl of 
-             Term.Var _    -> return (i, rl:dps)
-             Term.Fun f rs -> 
-               do attribs <- F.getAttributes f
-                  case (F.symIsCompound attribs, rs) of 
-                    (False, _)   -> return (i, rl:dps)
-                    (True , [r]) -> return (i, rl{ R.rhs = r }:dps)
-                    _            -> do c <- frshCompound i (length rs)
-                                       return (i+1, rl{ R.rhs = Term.Fun c rs}:dps) 
-         frshCompound i ar = F.fresh (F.defaultAttribs ("c_" ++ show i) ar) {F.symIsCompound = True}
+withFreshCompounds prob = 
+  fst . flip Sig.runSignature (signature prob)  $ do 
+    sdps' <- mapM frsh $ zip [1..] sdps 
+    wdps' <- mapM frsh $ zip [length sdps + 1..] wdps 
+    sig' <- Sig.getSignature
+    return $ prob { signature = sig'
+                  , strictDPs = Trs.fromRules sdps'
+                  , weakDPs = Trs.fromRules wdps'}
+   where 
+     sdps = Trs.rules $ strictDPs prob
+     wdps = Trs.rules $ weakDPs prob
+     
+     dp i l rs = do
+       c <- F.fresh (F.defaultAttribs ("c_" ++ show i) (length rs)) {F.symIsCompound = True}
+       return $ R.fromPair (l,Term.Fun c rs)
+         
+     frsh (i, R.Rule l r@(Term.Var _)) = dp i l [r]
+     frsh (i, R.Rule l r@(Term.Fun f rs)) = do 
+       attribs <- F.getAttributes f
+       if F.symIsCompound attribs then dp i l rs else dp i l [r]
+
