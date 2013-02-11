@@ -156,6 +156,8 @@ module Termlib.Repl
            -- * Complexity Problem
          , Prob.Problem(..)
          , Prob.StartTerms (..)
+         , Prob.Ruleset (..)
+         , Prob.emptyRuleset
          , Prob.Strategy (..)
            -- ** Querying
          , Prob.weakComponents
