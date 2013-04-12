@@ -171,12 +171,12 @@ measureName p = ms (strategy p) <+> mt (startTerms p) <> text "-complexity"
 
 sanitise :: Problem -> Problem
 sanitise prob = prob { signature = signature prob `Sig.restrictToSymbols` syms
-                     , variables = variables prob `Sig.restrictToSymbols` vars }
+                     , variables = variables prob `Sig.restrictToSymbols` vars 
+                     , startTerms = restrictST $ startTerms prob}
   where rs = allComponents prob
-        syms = stSyms `Set.union` Trs.functionSymbols rs
-        stSyms = case startTerms prob of 
-                   BasicTerms ds cs -> ds `Set.union` cs
-                   TermAlgebra fs   -> fs
+        syms = Trs.functionSymbols rs
+        restrictST (TermAlgebra fs) = TermAlgebra $ fs `Set.intersection` syms
+        restrictST (BasicTerms ds cs) = BasicTerms (ds `Set.intersection` syms) (cs `Set.intersection` syms)
         vars = Set.fromList [ i | V.User i <- Set.toList $ Trs.variables rs]
 
 withFreshCompounds :: Problem -> Problem
