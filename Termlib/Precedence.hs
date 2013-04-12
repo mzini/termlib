@@ -24,6 +24,7 @@ import Termlib.Utils (PrettyPrintable(..))
 import Data.Typeable 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Control.Monad.State.Strict as St
 import Data.List (find)
 
 data Order b = b :>: b
@@ -55,15 +56,35 @@ eclasses (Precedence (_, l)) = foldl ins [] l
         ins ecs _                 = ecs
                                                 
 recursionDepth :: Set.Set Symbol -> Precedence -> Map.Map Symbol Int
-recursionDepth recursives prec@(Precedence (sig, l)) = Map.fromList [(f,depthOf f) | f <- Set.toList $ symbols sig ]
-    where eclassOf f = case find (\ cs -> f `Set.member` cs) ecss of 
-                         Nothing -> f
-                         Just cs -> Set.findMin cs
-          ecss = eclasses prec
-          depthOf f = inc $ maximum (0:[depthOf h | g :>: h <- stricts, g == eclassOf f])
-              where stricts  = [eclassOf g :>: eclassOf h | (g :>: h) <- l]
-                    inc | f `Set.member` recursives = (+) 1
-                        | otherwise                 = id
+recursionDepth recursives prec@(Precedence (sig, l)) = St.execState (mapM_ recdepthM syms) Map.empty
+    where 
+      ecss = eclasses prec
+      
+      eclassOf f = 
+        case find (\ cs -> f `Set.member` cs) ecss of 
+          Nothing -> Set.singleton f
+          Just cs -> cs
+          
+      syms = Set.toList $ symbols sig        
+
+      below f = Set.toList $ Set.unions [ eclassOf h | f' :>: h <- l , f == f' ]
+
+      recdepthM f = do 
+        m <- St.get
+        case Map.lookup f m of 
+          Just rd -> return rd
+          Nothing -> do 
+            rds <- mapM recdepthM (below f)
+            let rd | f `Set.member` recursives = 1 + maximum (0:rds)
+                   | otherwise                 = maximum (0:rds)
+            St.modify (Map.insert f rd)
+            return rd
+        
+      
+      
+      
+          
+      
                                                       
 ranks :: Precedence -> Map.Map Symbol Int
 -- | ranks of function symbols in precedence, starting at '1'
