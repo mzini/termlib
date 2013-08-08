@@ -79,13 +79,18 @@ onSignature m =
      return a
 
 getSymbol :: F.FunctionName -> F.Arity -> TPDBParser F.Symbol
-getSymbol name arity = onSignature m 
-    where m = do sig <- Signature.getSignature 
-                 case F.symbol name sig of 
-                   Just sym 
-                     | F.arity sig sym == arity -> return sym
-                     | otherwise               -> F.fresh $ F.defaultAttribs (name ++ "(" ++ show arity ++ ")") arity
-                   Nothing  -> F.fresh $ F.defaultAttribs name arity
+getSymbol name arity = 
+  onSignature $
+  do sig <- Signature.getSignature 
+     case F.symbol name sig of 
+       Just sym 
+         | F.arity sig sym == arity -> return sym
+         | otherwise  -> 
+           case Signature.findByAttribute (\ a -> F.symIdent a == aname && F.symArity a == arity) sig of 
+             Just sym' -> return sym'
+             Nothing -> F.fresh $ F.defaultAttribs aname arity
+       Nothing  -> F.fresh $ F.defaultAttribs name arity
+  where aname = name ++ "(" ++ show arity ++ ")"
 
 getVariables :: TPDBParser Variables 
 getVariables = (variables . fst) `liftM` getState 
