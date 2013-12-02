@@ -21,9 +21,9 @@ module Termlib.Problem.Parser (
   problemFromFile
   , problemFromString 
   ) where
-import Control.Monad.Error
 
 import Control.Monad.Error
+import System.IO.Error (catchIOError)
 import System.FilePath (takeExtension)
 import Termlib.Problem
 import Termlib.Rule as R
@@ -44,7 +44,7 @@ problemFromFile input = do minput <- getInputStr
                            case minput of 
                              Just str -> return $ parser str
                              Nothing  -> return $ throwError $ ProblemNotFoundError input
-    where getInputStr = catch (Just `liftM` readFile input) (const $ return Nothing)
+    where getInputStr = catchIOError (Just `liftM` readFile input) (const $ return Nothing)
           parser | takeExtension input == ".trs" = TpdbParser.problemFromString
                  | takeExtension input == ".xml" = XmlParser.problemFromString
                  | otherwise                     = const $ throwError $ UnknownFileError input
