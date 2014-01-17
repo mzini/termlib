@@ -57,12 +57,20 @@ newtype InferM a =
 (=~) :: Type Int -> Type Int -> InferM ()
 a =~ b = tell [(a,b)]
 
-infer :: F.Signature -> [R.Rule] -> Typing Int
-infer sig rs = instDecl `Map.map` ds
+infer :: F.Signature -> [R.Rule] -> Typing String
+infer sig rs = rename $ instDecl id unifier `Map.map` decs
     where 
-      instDecl (TypeDecl its ot) = TypeDecl [unifier `apply` t | t <- its] (unifier `apply` ot)
+      rename :: Typing Int -> Typing String
+      rename ds = instDecl (error "rename decl") renamer `Map.map` ds
+          where 
+            vs = snub $ concatMap (\ (TypeDecl its ot) -> ot : its) (Map.elems ds)
+            names =  (\ c -> [c]) `map` (['a'..'z'] ++ ['A'..'Z'])
+                     ++ [show i | i <- [1..]]
+            renamer = Map.fromList $ zip vs names
 
-      (ds,_,up) = runRWS (run inferM) () 0
+      instDecl mk subst (TypeDecl its ot) = TypeDecl [apply' mk subst t | t <- its] (apply' mk subst ot)
+
+      (decs,_,up) = runRWS (run inferM) () 0
 
       mkDecl at (sym,attribs) = do 
         its <- mapM (const fresh) [1.. F.symArity attribs]
@@ -96,28 +104,32 @@ infer sig rs = instDecl `Map.map` ds
 
       unifier = unify up
           where 
-            unify [] = Map.empty
+            empty = Map.empty
+            unify [] = empty
             unify ((t1,t2):ts)
                 | t1 == t2 = unify ts
                 | otherwise = s `compose` unify [(s `apply` t3,s `apply` t4) | (t3,t4) <- ts]
-                where s = Map.singleton t1 t2
+                where s = Map.insert t1 t2 empty
             -- f subst (t1,t2) = Map.fromList [(t1,t1),(t2,t1)] `compose` subst
             s1 `compose` s2 = (apply s2 `Map.map` s1) `Map.union` s2 -- left-biased
 
-      subst `apply` t = 
+      apply = apply' id
+      apply' mk  subst t = 
           case Map.lookup t subst of 
             Just t' -> t'
-            Nothing -> t
+            Nothing -> mk t
 
-instance PrettyPrintable (TypeDecl (Type Int)) where
-    pprint (TypeDecl its os) 
+
+instance PrettyPrintable (TypeDecl (Type String)) where
+    pprint (TypeDecl its os)
         | null its = ppType os
+        | length its == 1 = ppis <+> text "->" <+> ppType os
         | otherwise = parens ppis <+> text "->" <+> ppType os
         where 
           ppis = hcat $ punctuate (text ",") [ppType i | i <- its]
-          ppType = text . show
+          ppType = text 
 
-instance PrettyPrintable (Typing (Type Int), F.Signature) where
+instance PrettyPrintable (Typing (Type String), F.Signature) where
     pprint (typing, sig) 
         | Map.null typing = text "empty"
         | otherwise       =  vcat [pp f tp | (f,tp) <- Map.toList typing ]
