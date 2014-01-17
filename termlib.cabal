@@ -26,6 +26,7 @@ library
   Termlib.Rule
   Termlib.Substitution
   Termlib.Trs
+  Termlib.Types
   Termlib.TermGraph
   Termlib.Term.Parser
   Termlib.Trs.PrettyPrint
