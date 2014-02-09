@@ -48,7 +48,7 @@ data Attributes = Attributes { symIdent :: !FunctionName
 
 type Signature = Sig.Signature Symbol Attributes
 
-type SignatureMonad a = Sig.SignatureMonad Symbol Attributes a
+type SignatureMonad = Sig.SignatureMonad Symbol Attributes
 
 defaultAttribs :: FunctionName -> Arity -> Attributes
 defaultAttribs name ar  = Attributes { symIdent = name

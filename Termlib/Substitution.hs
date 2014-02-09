@@ -28,11 +28,13 @@ module Termlib.Substitution
    subsumes,
    matches,   
    match,
+   match',
    isUnifiable,
    unify,
    isRenamedUnifiable,
    encompasses,
    variant,
+   Substitution
   ) where
 
 import Control.Monad.State.Lazy as State
@@ -61,18 +63,20 @@ apply s (T.Fun f xs) = T.Fun f (fmap (apply s) xs)
 
 compose s t = map (apply t) s `union` t
 
-s `subsumes` t = Maybe.isJust (match t s empty)
+s `subsumes` t = Maybe.isJust (match s t)
 
 matches = flip subsumes
 
 -- we say s matches (the pattern) t if s is an instance of t, ie., t subsumes s
-match s (T.Var x) sub = Maybe.maybe (Just (compose sub (singleton x s)))
+match' s (T.Var x) sub = Maybe.maybe (Just (compose sub (singleton x s)))
                         (\t -> if s == t then Just sub else Nothing) (lookup x sub)
-match (T.Fun g ys) (T.Fun f xs) sub
+match' (T.Fun g ys) (T.Fun f xs) sub
     | f == g && length xs == length ys = foldr doSubTerm (Just sub) (zip ys xs)
     | otherwise                        = Nothing
-  where doSubTerm (y, x) = maybe Nothing (\sub' -> match y x sub')
-match _ _ _ = Nothing
+  where doSubTerm (y, x) = maybe Nothing (\sub' -> match' y x sub')
+match' _ _ _ = Nothing
+
+match s t = match' t s empty
 
 isUnifiable :: T.Term -> T.Term -> Bool
 isUnifiable s t = State.evalState unify' ([(s, t)], empty)

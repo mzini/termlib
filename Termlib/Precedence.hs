@@ -80,12 +80,9 @@ recursionDepth recursives prec@(Precedence (sig, l)) = St.execState (mapM_ recde
             St.modify (Map.insert f rd)
             return rd
         
-      
-      
-      
-          
-      
                                                       
 ranks :: Precedence -> Map.Map Symbol Int
 -- | ranks of function symbols in precedence, starting at '1'
 ranks prec@(Precedence(sig,_)) = recursionDepth (symbols sig) prec
+
+

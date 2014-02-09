@@ -109,7 +109,7 @@ rewrites s@(T.Fun f xs) t@(T.Fun g ys) r
 rewrites s t r = topRewrites s t r
 
 topRewrites :: Term -> Term -> Rule -> Bool
-topRewrites s t r = maybe False (Maybe.isJust . S.match t (rhs r)) (S.match s (lhs r) S.empty)
+topRewrites s t r = maybe False (Maybe.isJust . S.match' t (rhs r)) (S.match' s (lhs r) S.empty)
 
 rewriteAnyRhs :: [Rule] -> [Rule] -> Maybe (Rule, Rule)
 rewriteAnyRhs ss rs = Maybe.listToMaybe $ Maybe.mapMaybe (flip rewriteRhsAnyRule rs) ss
@@ -147,7 +147,7 @@ rewriteCandidates t@(T.Fun f ts) r = case topRewrite t r of
         applyContext f' ts1 ts2 s = T.Fun f' (ts1 ++ s:ts2)
 
 topRewrite :: Term -> Rule -> Maybe (Term, Term)
-topRewrite t (Rule l r) = case S.match t l S.empty of
+topRewrite t (Rule l r) = case S.match' t l S.empty of
                             Nothing  -> Nothing
                             Just sub -> Just (t, S.apply sub r)
 
