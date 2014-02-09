@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-
@@ -21,8 +23,14 @@ module Termlib.Types
     (
      Type
     , TypeDecl (..)
+    , (:::) (..)
     , Typing (..)
     , infer
+    , types 
+    , equivs
+    , decls
+    , partition
+    , restrictTo
     )
 where
 
@@ -42,9 +50,17 @@ import Termlib.Term
 import qualified Termlib.Rule as R
 import Termlib.Utils 
 
+import qualified Data.Graph.Inductive.Graph as Graph
+import qualified Data.Graph.Inductive.Query.DFS as GraphDFS
+import qualified Data.Graph.Inductive.Tree as GraphT
+
+
+data a ::: b = a :::b 
+
 type Type a = a
 
-data TypeDecl a = TypeDecl [Type a] (Type a)
+data TypeDecl a = TypeDecl { inputTypes :: [Type a] 
+                           , outputType :: Type a }
 type Typing a = Map.Map F.Symbol (TypeDecl a)
 
 
@@ -119,6 +135,32 @@ infer sig rs = rename $ instDecl id unifier `Map.map` decs
             Just t' -> t'
             Nothing -> mk t
 
+types :: Ord a => Typing a -> Set.Set (Type a)
+types = Map.fold (\ (TypeDecl its o) s -> Set.fromList (o:its) `Set.union` s) Set.empty
+
+decls :: Typing a -> [F.Symbol ::: TypeDecl a]
+decls typing = [ f ::: decl | (f,decl) <- Map.toList typing ]
+
+-- | computes the equivalence of the transitive,reflexive closure of the input/output ordering 
+-- @a_i >= a@ iff @f : a_1,...,a_k -> a@ for some @i `elem` [1,...,k]@
+equivs :: Ord a => Typing a -> [[Type a]]
+equivs (typing :: Typing a) = [ [fromJust (Graph.lab gr n) | n <- scc] | scc <- GraphDFS.scc gr]
+    where 
+      gr :: GraphT.Gr a ()
+      gr = Graph.mkGraph ns es
+      ns = zip [0..] (Set.toList (types typing))
+      es = [ (i, i,()) | (i,_) <- ns ]
+           ++ [ (theID to, theID ti,()) | _ ::: TypeDecl tis to <- decls typing 
+                                        , ti <- tis]
+      ids = Map.fromList [(n,i) | (i,n) <- ns]
+      theID n = fromJust (Map.lookup n ids)
+
+
+partition :: (F.Symbol -> TypeDecl a -> Bool) -> Typing a -> (Typing a,Typing a)
+partition p = Map.mapEitherWithKey (\ f d -> if p f d then Left d else Right d)
+
+restrictTo :: Set.Set F.Symbol -> Typing a -> Typing a
+restrictTo fs = fst . partition (\ f _ -> f `Set.member` fs)
 
 instance PrettyPrintable (TypeDecl (Type String)) where
     pprint (TypeDecl its os)

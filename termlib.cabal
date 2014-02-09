@@ -22,6 +22,7 @@ library
   Termlib.FunctionSymbol
   Termlib.Signature
   Termlib.Variable
+  Termlib.Rewrite
   Termlib.Term
   Termlib.Rule
   Termlib.Substitution
